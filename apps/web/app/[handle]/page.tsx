@@ -1,4 +1,4 @@
-import { placeListMeta, ratingLabel } from '@love-it/shared';
+import { placeListMeta, ratingLabel, validateHandle } from '@love-it/shared';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { OpenAppButton } from '../../components/OpenAppButton';
@@ -7,11 +7,14 @@ import { TrackPublicPage } from '../../components/TrackPublicPage';
 import { loadPublicProfile, seedHandles } from '../../lib/data';
 
 export function generateStaticParams() {
-  return seedHandles().map((handle) => ({ handle }));
+  return seedHandles().flatMap((handle) => (validateHandle(handle).ok ? [{ handle }] : []));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
+  // Static folders (app/places, and later app/about, app/login, …) are matched
+  // before this dynamic segment. Reserved names that have no page 404 here.
+  if (!validateHandle(handle).ok) return { title: 'Love it' };
   const page = await loadPublicProfile(handle);
   if (!page) return { title: 'Love it' };
   return {
@@ -22,6 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
 
 export default async function ProfilePage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
+  if (!validateHandle(handle).ok) notFound();
   const page = await loadPublicProfile(handle);
   if (!page) notFound();
   const { profile } = page;

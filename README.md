@@ -9,7 +9,7 @@ This repo is the starter: an Expo iPhone app, a Next.js page for public links, s
 | Path | What it is |
 | --- | --- |
 | `apps/mobile` | Expo (React Native, TypeScript, Expo Router). The five screens. |
-| `apps/web` | Next.js App Router. Public pages at `/{handle}` and `/places/{id}`, with an open-in-app / install CTA. |
+| `apps/web` | Next.js App Router. Public pages at `/{handle}` (`/@handle` redirects there) and `/places/{id}`, with an open-in-app / install CTA. |
 | `packages/shared` | Domain types, Tel Aviv seed data, place search, and the typed PostHog events. |
 | `supabase/migrations/0001_love_it_init.sql` | Postgres + PostGIS, RLS, reports, and blocks. |
 
@@ -56,6 +56,8 @@ npx expo run:ios --device
 
 That compiles a development build and installs it. Use it if the App Store Expo Go build is behind SDK 58.
 
+The iOS bundle identifier is `com.yanaybenyosef.loveit` (`ios.bundleIdentifier` in `apps/mobile/app.json`). The URL scheme stays `loveit`.
+
 In the Simulator, set the location to Tel Aviv if you want the recenter button to land in the city: **Features → Location → Custom Location…** `32.0853`, `34.7818`. Search stays biased to Tel Aviv either way.
 
 Click through:
@@ -78,7 +80,9 @@ From the repo root:
 npm run dev:web
 ```
 
-Open [http://localhost:3000](http://localhost:3000), then [http://localhost:3000/yael.loves](http://localhost:3000/yael.loves) and [http://localhost:3000/tom.sips](http://localhost:3000/tom.sips). Place links look like [http://localhost:3000/places/place_lev_florentin](http://localhost:3000/places/place_lev_florentin).
+Open [http://localhost:3000](http://localhost:3000), then [http://localhost:3000/yael.loves](http://localhost:3000/yael.loves) and [http://localhost:3000/tom.sips](http://localhost:3000/tom.sips). `http://localhost:3000/@yael.loves` redirects to `/yael.loves`. Place links look like [http://localhost:3000/places/place_lev_florentin](http://localhost:3000/places/place_lev_florentin).
+
+`/places` and any other real folder under `apps/web/app` is matched before the `[handle]` page. Handles that would collide with the site (`login`, `places`, `favicon.ico`, and the rest of `RESERVED_HANDLES` in `packages/shared`) cannot be claimed. Signup and Edit page both run that check.
 
 **Open in the app** uses the `loveit://` scheme. **Get the iPhone app** goes to `NEXT_PUBLIC_APP_STORE_URL` when that is set, and otherwise to the note on the home page. Both clicks emit PostHog events when a key is present.
 
@@ -101,31 +105,40 @@ Or with a direct connection string:
 
 ```bash
 psql "$DATABASE_URL" -f supabase/migrations/0001_love_it_init.sql
+psql "$DATABASE_URL" -f supabase/migrations/0002_handle_rules.sql
 ```
 
-The migration:
+The migrations:
 
 - Enables PostGIS.
 - `places.location` is a `geography(Point, 4326)`. A row is either an Apple place (`apple_place_id`, the MKMapItem identifier) or a custom pin (`is_custom_pin`).
 - `entries` are the saves (rating 1–5, note, tags, visibility `public | friends | private`).
 - `place_photos.position` is 1 through 10.
-- `profiles` are created from `auth.users` by a trigger. Handles look like `yael.loves`.
+- `profiles` are created from `auth.users` by a trigger. Handles look like `yael.loves`: 3–30 characters of `a-z`, `0-9`, `.`, `_`, unique case-insensitively. `0002_handle_rules.sql` rejects reserved names (`login`, `places`, …). A reserved handle on signup falls back to `lover_<id>` instead of failing the account.
 - `follows`, `reports`, and `blocks` back Apple Guideline 1.2. People can report a profile from the ··· menu and block someone, which hides them and drops the follow. Review `reports` in the Supabase dashboard (the service role bypasses RLS).
-- RLS: public saves are world-readable (so the link-in-bio page works with the anon key). Friends-only saves require a follow. Private saves are the author. Blocks hide both sides.
+- RLS: public saves are world-readable (so the link-in-bio page works with the publishable key). Friends-only saves require a follow. Private saves are the author. Blocks hide both sides.
 
 Copy `.env.example` when you have keys.
 
 ```bash
 # apps/mobile/.env
 EXPO_PUBLIC_SUPABASE_URL=
-EXPO_PUBLIC_SUPABASE_ANON_KEY=
+# sb_publishable_... — sb_secret_ keys must never ship in client code.
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 
 # apps/web/.env.local
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+# sb_publishable_... — sb_secret_ keys must never ship in client code.
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-Public pages keep using the seed diary until those are set and the handle exists in `profiles`. Photo uploads go to the `place-photos` bucket when the mobile URL and anon key are set; until then the compressed local file is what the diary shows. `uploadPlacePhoto` resizes to 1600px JPEG (quality 0.72) first.
+Public pages keep using the seed diary until those are set and the handle exists in `profiles`. Photo uploads go to the `place-photos` bucket when the mobile URL and publishable key are set; until then the compressed local file is what the diary shows. `uploadPlacePhoto` resizes to 1600px JPEG (quality 0.72) first.
+
+Sign-up smoke test (needs the URL and an `sb_publishable_` key in the environment or in those env files):
+
+```bash
+npm run supabase:smoke
+```
 
 `placeSourceForDatabase()` in `@love-it/shared` is the mapping into the SQL check: an Apple id, or a custom pin when the catalog place has not been matched yet.
 
@@ -167,11 +180,11 @@ See `.env.example`. All of it is optional for the starter.
 | `EXPO_PUBLIC_POSTHOG_KEY` | mobile | PostHog |
 | `EXPO_PUBLIC_WEB_URL` | mobile | Link copied by Share. Defaults to `http://localhost:3000` |
 | `EXPO_PUBLIC_APPLE_MAPS_TOKEN` | mobile | Apple Maps Server API search |
-| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` | mobile | Photo upload |
+| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | mobile | Photo upload. Key format `sb_publishable_...`. Never an `sb_secret_` key. |
 | `NEXT_PUBLIC_POSTHOG_KEY` | web | PostHog |
 | `NEXT_PUBLIC_SITE_URL` | web | Public origin |
 | `NEXT_PUBLIC_APP_STORE_URL` | web | Install CTA |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | web | Live public pages |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | web | Live public pages. Key format `sb_publishable_...`. Never an `sb_secret_` key. |
 
 ## Scripts
 
@@ -184,3 +197,4 @@ See `.env.example`. All of it is optional for the starter.
 | `npm run build:web` | root |
 | `npx expo start --ios` | `apps/mobile` |
 | `npx expo run:ios --device` | `apps/mobile` |
+| `npm run supabase:smoke` | root, signs up a throwaway email user |

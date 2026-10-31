@@ -8,10 +8,14 @@ import {
   importPlaces,
   photosForEntry,
   placeSourceForDatabase,
+  RESERVED_HANDLES,
   saveEntry,
   searchPlaces,
   searchProfiles,
   toggleQuickSave,
+  supabasePublishableKey,
+  updateProfile,
+  validateHandle,
 } from './index';
 import { seedData } from './seed';
 
@@ -155,6 +159,33 @@ const source = placeSourceForDatabase({ ...seedData.places[0]!, applePlaceId: nu
 assert(source.is_custom_pin && source.apple_place_id === null, 'unsynced catalog places sync as custom pins');
 const appleSource = placeSourceForDatabase({ ...seedData.places[0]!, applePlaceId: 'mk-123', isCustomPin: false });
 assert(appleSource.apple_place_id === 'mk-123' && !appleSource.is_custom_pin, 'Apple ids stay the primary key');
+
+const reserved = validateHandle('Login');
+assert(!reserved.ok, 'reserved handles are rejected');
+const normalized = validateHandle('@Yael.Loves');
+assert(normalized.ok && normalized.handle === 'yael.loves', 'handles drop @ and lowercase');
+assert(
+  seedData.profiles.every((profile) => validateHandle(profile.handle).ok),
+  'seed handles are allowed',
+);
+assert(RESERVED_HANDLES.includes('places') && RESERVED_HANDLES.includes('favicon.ico'), 'static paths are reserved');
+let refused = false;
+try {
+  updateProfile(cloneSeed(), yael, { handle: 'admin' });
+} catch {
+  refused = true;
+}
+assert(refused, 'signup handle validation refuses a reserved name');
+assert(supabasePublishableKey('sb_secret_live') === null, 'sb_secret_ keys are refused in client code');
+assert(
+  supabasePublishableKey(' sb_publishable_test ') === 'sb_publishable_test',
+  'publishable keys are trimmed and kept',
+);
+const renamed = updateProfile(cloneSeed(), yael, { handle: '@yael_eats' });
+assert(
+  renamed.profiles.some((profile) => profile.id === yael && profile.handle === 'yael_eats'),
+  'a free handle saves',
+);
 
   console.log('love-it shared self-check ok');
   console.log(`seed: ${seedData.places.length} places, ${seedData.profiles.length} people, ${seedData.photos.length} photos`);

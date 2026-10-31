@@ -1,4 +1,4 @@
-import { MAX_PHOTOS_PER_ENTRY, type SavePhotoInput } from '@love-it/shared';
+import { MAX_PHOTOS_PER_ENTRY, supabasePublishableKey, type SavePhotoInput } from '@love-it/shared';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -42,7 +42,8 @@ export async function pickPlacePhotos(already: number): Promise<PreparedPhoto[]>
 
 export async function uploadPlacePhoto(localUri: string, objectPath: string): Promise<string> {
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  // sb_publishable_... only. sb_secret_ keys must never ship in client code.
+  const supabaseKey = supabasePublishableKey(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
   if (!supabaseUrl || !supabaseKey) return localUri;
   try {
     const { createClient } = await import('@supabase/supabase-js');

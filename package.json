@@ -12,7 +12,8 @@
     "dev:web": "npm run dev -w @love-it/web",
     "build:web": "npm run build -w @love-it/web",
     "dev:mobile": "npm run start -w @love-it/mobile",
-    "ios": "npm run ios -w @love-it/mobile"
+    "ios": "npm run ios -w @love-it/mobile",
+    "supabase:smoke": "tsx scripts/supabase-smoke-test.ts"
   },
   "devDependencies": {
     "tsx": "^4.20.5",

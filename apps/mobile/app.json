@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.loveit.app",
+      "bundleIdentifier": "com.yanaybenyosef.loveit",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Love it adds up to 10 photos when you save a place.",
         "NSLocationWhenInUseUsageDescription": "Love it centers the map on cafes and restaurants near you.",

@@ -8,6 +8,8 @@ import {
   placeById,
   profileByHandle,
   seedData,
+  supabasePublishableKey,
+  validateHandle,
   type LoveItData,
   type Place,
   type PlaceView,
@@ -35,9 +37,11 @@ export interface PublicProfilePage {
 }
 
 export async function loadPublicProfile(handle: string): Promise<PublicProfilePage | null> {
-  const remote = await loadRemoteProfile(handle);
+  const parsed = validateHandle(handle);
+  if (!parsed.ok) return null;
+  const remote = await loadRemoteProfile(parsed.handle);
   if (remote) return remote;
-  return seedProfile(handle);
+  return seedProfile(parsed.handle);
 }
 
 export async function loadPublicPlace(placeId: string): Promise<{ view: PlaceView; source: 'seed' | 'supabase' } | null> {
@@ -90,7 +94,8 @@ function pageFromData(data: LoveItData, profile: UserProfile, source: PublicProf
 
 function supabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // sb_publishable_... only. sb_secret_ keys must never ship in client code.
+  const key = supabasePublishableKey(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: false } });
 }

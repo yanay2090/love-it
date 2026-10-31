@@ -1,4 +1,6 @@
 export * from './domain';
+export * from './handles';
+export * from './supabase';
 export * from './geo';
 export * from './labels';
 export * from './analytics';

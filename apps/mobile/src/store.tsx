@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { track } from './analytics';
+import { handleForSignup } from './signup';
 import { colors } from './theme';
 
 const STORAGE_KEY = 'loveit.demo.v1';
@@ -142,7 +143,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const editProfile = useCallback(
     (patch: { displayName?: string; handle?: string; bio?: string }) => {
       try {
-        commit(updateProfileRow(dataRef.current, CURRENT_USER_ID, patch));
+        let nextPatch = patch;
+        if (patch.handle !== undefined) {
+          const parsed = handleForSignup(patch.handle);
+          if (!parsed.ok) return parsed.message;
+          nextPatch = { ...patch, handle: parsed.handle };
+        }
+        commit(updateProfileRow(dataRef.current, CURRENT_USER_ID, nextPatch));
         return null;
       } catch (error) {
         return error instanceof Error ? error.message : 'Could not save your page.';

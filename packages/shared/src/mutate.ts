@@ -1,6 +1,7 @@
 import type { Entry, LoveItData, Place, PlacePhoto, Rating, ReportTargetType, UserProfile, Visibility } from './domain';
 import { MAX_NOTE_LENGTH, MAX_PHOTOS_PER_ENTRY, MAX_TAGS } from './domain';
 import { distanceMeters } from './geo';
+import { validateHandle } from './handles';
 
 export function createId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -147,9 +148,11 @@ export function updateProfile(
   userId: string,
   patch: { displayName?: string; handle?: string; bio?: string },
 ): LoveItData {
-  const handle = patch.handle?.trim().toLowerCase();
-  if (handle !== undefined && !/^[a-z0-9._]{3,30}$/.test(handle)) {
-    throw new Error('Handles are 3–30 characters: letters, numbers, dots, or underscores.');
+  let handle: string | undefined;
+  if (patch.handle !== undefined) {
+    const parsed = validateHandle(patch.handle);
+    if (!parsed.ok) throw new Error(parsed.message);
+    handle = parsed.handle;
   }
   if (handle && data.profiles.some((profile) => profile.handle === handle && profile.id !== userId)) {
     throw new Error('That handle is taken.');
