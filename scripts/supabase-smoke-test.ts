@@ -1,7 +1,13 @@
 /**
  * Sign up a throwaway email user against the configured Supabase project.
  *
- *   npm run supabase:smoke
+ *   SMOKE_TEST_EMAIL=you@gmail.com npm run supabase:smoke
+ *   npm run supabase:smoke -- you@gmail.com
+ *
+ * The address must be a real inbox. Supabase Auth rejects example.com.
+ * A random +tag is inserted before the @ (you+smokeabc@gmail.com) so each run
+ * is a new user. A signup that creates the user but returns no session is a
+ * pass: that happens when Confirm email is on.
  *
  * URL:  SUPABASE_URL, else NEXT_PUBLIC_SUPABASE_URL, else EXPO_PUBLIC_SUPABASE_URL
  * Key:  SUPABASE_PUBLISHABLE_KEY, else NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
@@ -11,7 +17,8 @@
  * `sb_secret_` keys must never ship in client code and are refused here too.
  *
  * Loads `.env`, `.env.local`, `apps/web/.env.local`, and `apps/mobile/.env`
- * without overriding variables already set in the environment.
+ * without overriding variables already set in the environment. A CLI address
+ * wins over SMOKE_TEST_EMAIL.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -50,6 +57,45 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+const EMAIL_HELP =
+  'Set SMOKE_TEST_EMAIL to an inbox Supabase will accept (not example.com), or pass it as an argument.\n' +
+  '  SMOKE_TEST_EMAIL=you@gmail.com npm run supabase:smoke\n' +
+  '  npm run supabase:smoke -- you@gmail.com';
+
+/** CLI address (`-- you@gmail.com` or `--email you@gmail.com`) wins over the env var. */
+function emailFromArgs(argv: string[]): string | null {
+  const args = argv.slice(2);
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index] ?? '';
+    if (arg === '--email' || arg === '--smoke-email') {
+      const next = args[index + 1];
+      if (!next || next.startsWith('-')) fail(`missing address after ${arg}.\n${EMAIL_HELP}`);
+      return next;
+    }
+    if (arg.startsWith('--email=')) return arg.slice('--email='.length);
+    if (arg.startsWith('--smoke-email=')) return arg.slice('--smoke-email='.length);
+    if (!arg.startsWith('-') && arg.includes('@')) return arg;
+  }
+  return null;
+}
+
+/** you@gmail.com → you+smoke<random>@gmail.com */
+function taggedEmail(base: string): string {
+  const trimmed = base.trim();
+  const at = trimmed.lastIndexOf('@');
+  const local = at > 0 ? trimmed.slice(0, at) : '';
+  const domain = at > 0 ? trimmed.slice(at + 1) : '';
+  const localBase = local.split('+')[0] ?? '';
+  if (!localBase || !domain.includes('.') || domain.startsWith('.') || domain.endsWith('.')) {
+    fail(`"${trimmed}" is not a usable email.\n${EMAIL_HELP}`);
+  }
+  if (domain.toLowerCase() === 'example.com') {
+    fail(`Supabase Auth rejects example.com.\n${EMAIL_HELP}`);
+  }
+  const tag = `smoke${Date.now().toString(36)}`;
+  return `${localBase}+${tag}@${domain}`;
+}
+
 async function main(): Promise<void> {
   loadEnvFiles();
 
@@ -75,9 +121,12 @@ async function main(): Promise<void> {
     fail(`the key in ${key.name} is not a publishable key. Expected sb_publishable_.... sb_secret_ keys must never ship in client code.`);
   }
 
+  const baseEmail = emailFromArgs(process.argv) ?? process.env.SMOKE_TEST_EMAIL?.trim() ?? '';
+  if (!baseEmail) fail(EMAIL_HELP);
+
   const project = url.value.replace(/\/$/, '');
-  const stamp = Date.now().toString(36);
-  const email = `smoke+${stamp}@example.com`;
+  const email = taggedEmail(baseEmail);
+  const stamp = email.slice(email.indexOf('+') + 1, email.lastIndexOf('@')).replace(/[^a-z0-9]/gi, '');
   const password = `Loveit-${stamp}-Smoke1`;
   const handle = `smoke_${stamp}`.slice(0, 30);
 
@@ -107,7 +156,8 @@ async function main(): Promise<void> {
 
   const body = (await response.json().catch(() => null)) as {
     id?: string;
-    user?: { id?: string };
+    user?: { id?: string } | null;
+    session?: { access_token?: string } | null;
     access_token?: string;
     msg?: string;
     message?: string;
@@ -121,9 +171,17 @@ async function main(): Promise<void> {
     fail(`signup failed (${response.status}): ${detail}`);
   }
 
+  const sessionToken = body?.session?.access_token || body?.access_token;
   console.log('result: success');
   console.log(`user_id: ${userId}`);
-  console.log(body?.access_token ? 'session: created' : 'session: none (email confirmation may be required)');
+  if (sessionToken) {
+    console.log('session: created');
+    return;
+  }
+  console.log('session: none');
+  console.log(
+    'Confirm email is on in the Supabase dashboard (Authentication → Sign In / Providers → Email → Confirm email), so Auth created the user and did not return a session. That is a pass. Turn Confirm email off if this script should also receive a session.',
+  );
 }
 
 void main();

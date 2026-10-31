@@ -134,11 +134,13 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 
 Public pages keep using the seed diary until those are set and the handle exists in `profiles`. Photo uploads go to the `place-photos` bucket when the mobile URL and publishable key are set; until then the compressed local file is what the diary shows. `uploadPlacePhoto` resizes to 1600px JPEG (quality 0.72) first.
 
-Sign-up smoke test (needs the URL and an `sb_publishable_` key in the environment or in those env files):
+Sign-up smoke test. Needs the project URL, an `sb_publishable_` key, and a real inbox. Supabase Auth rejects `example.com`. The script inserts a random `+tag` before the `@`, so `you@gmail.com` becomes `you+smoke…@gmail.com`. A created user with no session is a pass when **Confirm email** is on.
 
 ```bash
-npm run supabase:smoke
+SMOKE_TEST_EMAIL=you@gmail.com npm run supabase:smoke
 ```
+
+Or `npm run supabase:smoke -- you@gmail.com`. `SMOKE_TEST_EMAIL` can also live in `.env`.
 
 `placeSourceForDatabase()` in `@love-it/shared` is the mapping into the SQL check: an Apple id, or a custom pin when the catalog place has not been matched yet.
 
@@ -185,6 +187,7 @@ See `.env.example`. All of it is optional for the starter.
 | `NEXT_PUBLIC_SITE_URL` | web | Public origin |
 | `NEXT_PUBLIC_APP_STORE_URL` | web | Install CTA |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | web | Live public pages. Key format `sb_publishable_...`. Never an `sb_secret_` key. |
+| `SMOKE_TEST_EMAIL` | smoke test | Real inbox, for example `you@gmail.com`. The script adds a random `+tag`. Not read by the apps. |
 
 ## Scripts
 
@@ -197,4 +200,4 @@ See `.env.example`. All of it is optional for the starter.
 | `npm run build:web` | root |
 | `npx expo start --ios` | `apps/mobile` |
 | `npx expo run:ios --device` | `apps/mobile` |
-| `npm run supabase:smoke` | root, signs up a throwaway email user |
+| `SMOKE_TEST_EMAIL=you@gmail.com npm run supabase:smoke` | root, signs up `you+smoke…@gmail.com` |
