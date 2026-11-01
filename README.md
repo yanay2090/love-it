@@ -54,7 +54,7 @@ On a real iPhone, from `apps/mobile`:
 npx expo run:ios --device
 ```
 
-That compiles a development build and installs it. Use it if the App Store Expo Go build is behind SDK 58.
+That compiles a development build and installs it. Use it when the App Store Expo Go build is behind SDK 58, and again after pulling the MapKit search module (`apps/mobile/modules/love-it-local-search`). A JavaScript reload is not enough for that native piece.
 
 The iOS bundle identifier is `com.yanaybenyosef.loveit` (`ios.bundleIdentifier` in `apps/mobile/app.json`). The URL scheme stays `loveit`.
 

@@ -80,7 +80,7 @@ export async function searchPlaces(
         source: 'mk-local-search' as const,
         distanceMeters: distanceMeters(bias, hit),
       }));
-      if (nativeHits.length > 0) return mergeHits(nativeHits, seedHits).slice(0, limit);
+      if (nativeHits.length > 0) return mergeHits(nativeHits, supportingSeed(seedHits, q)).slice(0, limit);
     } catch {
       // Fall through to the server API and the catalog.
     }
@@ -89,7 +89,7 @@ export async function searchPlaces(
   if (options.token) {
     try {
       const appleHits = await searchAppleMapsServer(q, bias, options.token, options.fetchImpl, options.signal);
-      if (appleHits.length > 0) return mergeHits(appleHits, seedHits).slice(0, limit);
+      if (appleHits.length > 0) return mergeHits(appleHits, supportingSeed(seedHits, q)).slice(0, limit);
     } catch {
       // A missing token, 401, or offline simulator still gets seed results.
     }
@@ -213,6 +213,17 @@ function appleResultToHit(result: ApplePlace, bias: { lat: number; lng: number }
     distanceMeters: distanceMeters(bias, { lat, lng }),
     source: 'apple-maps-server',
   };
+}
+
+/** Seed rows that share the typed name. Category-only hits stay out so they don't crowd Apple results. */
+function supportingSeed(hits: PlaceSearchHit[], query: string): PlaceSearchHit[] {
+  const q = query.trim().toLowerCase();
+  const compact = q.replace(/\s+/g, '');
+  return hits.filter((hit) => {
+    const name = hit.name.toLowerCase();
+    if (name.includes(q)) return true;
+    return compact.length >= 3 && name.replace(/\s+/g, '').includes(compact);
+  });
 }
 
 export function mergeHits(primary: PlaceSearchHit[], extra: PlaceSearchHit[]): PlaceSearchHit[] {

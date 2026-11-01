@@ -23,9 +23,10 @@ import {
 } from '@love-it/shared';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
-  KeyboardAvoidingView,
+  InputAccessoryView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -33,6 +34,7 @@ import {
   Text,
   TextInput,
   View,
+  type KeyboardEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { track } from '../analytics';
@@ -48,6 +50,7 @@ function one(value: string | string[] | undefined): string | undefined {
 }
 
 const VISIBILITIES: Visibility[] = ['public', 'friends', 'private'];
+const NOTE_ACCESSORY_ID = 'loveit-add-note-done';
 
 export function AddScreen() {
   const router = useRouter();
@@ -80,17 +83,54 @@ export function AddScreen() {
       : [],
   );
   const [busy, setBusy] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
+  const searchRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const openedWithPlace = useRef(placeId ?? null);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (event: KeyboardEvent) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const Location = await import('expo-location');
+        const permission = await Location.getForegroundPermissionsAsync();
+        if (!permission.granted || cancelled) return;
+        const last = await Location.getLastKnownPositionAsync();
+        const position = last ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+        if (!cancelled) setHere({ lat: position.coords.latitude, lng: position.coords.longitude });
+      } catch {
+        // Custom pins fall back to the Florentin demo origin.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     const handle = setTimeout(() => {
-      void searchTelAvivPlaces(query, data.places).then((next) => {
+      void searchTelAvivPlaces(query, data.places, here ?? DEMO_ORIGIN).then((next) => {
         if (cancelled) return;
         setHits(next);
         setSelectedKey((current) => {
+          if (!current) return null;
+          if (!query.trim() && current === openedWithPlace.current) return current;
           if (next.some((hit) => hit.key === current || hit.placeId === current)) return current;
-          if (!query.trim() && placeId) return placeId;
-          return next[0]?.key ?? null;
+          return null;
         });
       });
     }, 160);
@@ -98,11 +138,12 @@ export function AddScreen() {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [query, data.places, placeId]);
+  }, [query, data.places, here]);
 
-  const selectedHit =
-    hits.find((hit) => hit.key === selectedKey || hit.placeId === selectedKey) ??
-    (!query.trim() && seeded ? hitFromPlace(seeded) : undefined);
+  const selectedHit = selectedKey
+    ? (hits.find((hit) => hit.key === selectedKey || hit.placeId === selectedKey) ??
+      (!query.trim() && seeded && (selectedKey === seeded.id || selectedKey === placeId) ? hitFromPlace(seeded) : undefined))
+    : undefined;
   const selectedPlace = resolvePlace(selectedHit, data.places);
 
   function toggleTag(tag: string) {
@@ -115,13 +156,36 @@ export function AddScreen() {
     setPhotos((current) => [...current, ...picked].slice(0, MAX_PHOTOS_PER_ENTRY));
   }
 
+  function clearSelection() {
+    setSelectedKey(null);
+    setCustom(false);
+    searchRef.current?.focus();
+  }
+
+  async function pinOrigin(): Promise<{ lat: number; lng: number }> {
+    if (here) return here;
+    try {
+      const Location = await import('expo-location');
+      const current = await Location.getForegroundPermissionsAsync();
+      const permission = current.granted ? current : await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) return DEMO_ORIGIN;
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const point = { lat: position.coords.latitude, lng: position.coords.longitude };
+      setHere(point);
+      return point;
+    } catch {
+      return DEMO_ORIGIN;
+    }
+  }
+
   async function onSave() {
+    const origin = custom ? await pinOrigin() : null;
     const place = custom
       ? customPinPlace({
           name: customName,
           category: customCategory,
-          lat: DEMO_ORIGIN.lat,
-          lng: DEMO_ORIGIN.lng,
+          lat: origin?.lat ?? DEMO_ORIGIN.lat,
+          lng: origin?.lng ?? DEMO_ORIGIN.lng,
           neighborhood: 'Tel Aviv',
         })
       : selectedPlace;
@@ -165,17 +229,23 @@ export function AddScreen() {
   const canSave = custom ? customName.trim().length >= 2 : Boolean(selectedPlace);
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={[styles.screen, { paddingBottom: keyboardHeight }]}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Text style={styles.title}>Love a place</Text>
         <Pressable onPress={() => router.back()}>
           <Text style={styles.cancel}>Cancel</Text>
         </Pressable>
       </View>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets={false}
+      >
         <View style={styles.search}>
           <Ionicons name="search" size={18} color={colors.muted} />
           <TextInput
+            ref={searchRef}
             value={query}
             onChangeText={(value) => {
               setQuery(value);
@@ -187,18 +257,22 @@ export function AddScreen() {
             autoFocus={!placeId}
             autoCorrect={false}
             autoCapitalize="none"
+            returnKeyType="search"
+            blurOnSubmit
+            onSubmitEditing={() => searchRef.current?.blur()}
           />
         </View>
         <Text style={styles.kicker}>{query.trim() ? 'PLACES' : 'NEAR YOU'}</Text>
         {hits.map((hit) => {
-          const active = !custom && (hit.key === selectedHit?.key || hit.placeId === selectedHit?.placeId);
+          const active = !custom && (hit.key === selectedKey || hit.placeId === selectedKey);
           return (
             <Pressable
               key={hit.key}
               style={styles.result}
               onPress={() => {
+                Keyboard.dismiss();
                 setCustom(false);
-                setSelectedKey(hit.key);
+                setSelectedKey(active ? null : hit.key);
               }}
             >
               <Thumb uri={hit.placeId ? placeById(data, hit.placeId)?.covers[0] : undefined} size={48} />
@@ -215,19 +289,39 @@ export function AddScreen() {
             </Pressable>
           );
         })}
-        <Pressable style={styles.customLink} onPress={() => setCustom(true)}>
+        <Pressable
+          style={styles.customLink}
+          onPress={() => {
+            Keyboard.dismiss();
+            setCustom(true);
+            setSelectedKey(null);
+          }}
+        >
           <Text style={styles.customLinkText}>Can’t find it? Drop a custom pin</Text>
         </Pressable>
 
         {custom ? (
           <View style={styles.card}>
-            <Text style={styles.label}>Custom pin</Text>
+            <View style={styles.cardHead}>
+              <Text style={[styles.label, { flex: 1 }]}>Custom pin</Text>
+              <Pressable
+                onPress={() => {
+                  setCustom(false);
+                  searchRef.current?.focus();
+                }}
+                accessibilityLabel="Back to search"
+              >
+                <Text style={styles.change}>Cancel</Text>
+              </Pressable>
+            </View>
             <TextInput
               value={customName}
               onChangeText={setCustomName}
               placeholder="Place name"
               placeholderTextColor={colors.faint}
               style={styles.note}
+              returnKeyType="done"
+              blurOnSubmit
             />
             <View style={styles.tags}>
               {PLACE_CATEGORIES.map((category) => (
@@ -254,6 +348,10 @@ export function AddScreen() {
                   {custom ? `${categoryLabel(customCategory)} · Tel Aviv` : selectedPlace ? placeListMeta(selectedPlace) : ''}
                 </Text>
               </View>
+              <Pressable onPress={clearSelection} accessibilityLabel="Change place" style={styles.changeButton}>
+                <Ionicons name="close" size={16} color={colors.ink} />
+                <Text style={styles.change}>Change</Text>
+              </Pressable>
               <Pressable
                 style={styles.bigHeart}
                 onPress={() => {
@@ -308,6 +406,8 @@ export function AddScreen() {
                 placeholderTextColor={colors.faint}
                 style={styles.note}
                 autoFocus
+                returnKeyType="done"
+                blurOnSubmit
               />
             ) : null}
 
@@ -317,7 +417,9 @@ export function AddScreen() {
                 onChangeText={(value) => setNote(value.slice(0, MAX_NOTE_LENGTH))}
                 placeholder="Lamb kebab, sit at the bar"
                 placeholderTextColor={colors.faint}
-                style={styles.note}
+                style={[styles.note, styles.noteMultiline]}
+                multiline
+                inputAccessoryViewID={Platform.OS === 'ios' ? NOTE_ACCESSORY_ID : undefined}
               />
               <Text style={styles.optional}>Note · optional</Text>
             </View>
@@ -351,7 +453,7 @@ export function AddScreen() {
         ) : null}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.footer, { paddingBottom: keyboardHeight > 0 ? 12 : Math.max(insets.bottom, 12) }]}>
         <Pressable style={styles.visibility} onPress={() => setShowVisibility((value) => !value)}>
           <Ionicons
             name={visibility === 'private' ? 'lock-closed-outline' : visibility === 'friends' ? 'people-outline' : 'globe-outline'}
@@ -366,7 +468,7 @@ export function AddScreen() {
         </Pressable>
       </View>
       {showVisibility ? (
-        <View style={[styles.visibilityMenu, { bottom: Math.max(insets.bottom, 12) + 64 }]}>
+        <View style={[styles.visibilityMenu, { bottom: (keyboardHeight > 0 ? 12 : Math.max(insets.bottom, 12)) + 64 }]}>
           {VISIBILITIES.map((item) => (
             <Pressable
               key={item}
@@ -383,7 +485,16 @@ export function AddScreen() {
           ))}
         </View>
       ) : null}
-    </KeyboardAvoidingView>
+      {Platform.OS === 'ios' ? (
+        <InputAccessoryView nativeID={NOTE_ACCESSORY_ID}>
+          <View style={styles.accessory}>
+            <Pressable onPress={Keyboard.dismiss} accessibilityLabel="Done">
+              <Text style={styles.change}>Done</Text>
+            </Pressable>
+          </View>
+        </InputAccessoryView>
+      ) : null}
+    </View>
   );
 }
 
@@ -451,6 +562,17 @@ const styles = StyleSheet.create({
   checkOn: { backgroundColor: colors.coral, borderColor: colors.coral },
   customLink: { paddingVertical: 12 },
   customLinkText: { color: colors.coral, fontWeight: '800' },
+  changeButton: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 6 },
+  change: { color: colors.coral, fontWeight: '800', fontSize: 16 },
+  noteMultiline: { minHeight: 72, textAlignVertical: 'top' },
+  accessory: {
+    alignItems: 'flex-end',
+    backgroundColor: colors.paper,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.hairline,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
   card: {
     backgroundColor: '#FBF6F1',
     borderRadius: 22,
