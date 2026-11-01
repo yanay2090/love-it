@@ -1,22 +1,30 @@
 :root {
-  --cream: #fbf6f1;
-  --cream-deep: #f3ebe3;
-  --ink: #1b1918;
-  --muted: #8d847c;
-  --line: #efe4da;
-  --white: #ffffff;
-  --coral: #ff5a6c;
-  --coral-dark: #f04458;
-  --coral-soft: #ffe6ea;
-  --shadow: 0 16px 40px rgba(90, 50, 40, 0.12);
+  /* Field Notes, refined — packages/shared/src/theme/tokens.ts */
+  --ink: #1c1917;
+  --paper: #f7f3ec;
+  --linen: #fffdf9;
+  --tomato: #e2412b;
+  --clay: #b0714b;
+  --stone: #857c72;
+  --hairline: #e5ded3;
+  --sea: #cbd8d6;
+  --cream: var(--paper);
+  --cream-deep: var(--paper);
+  --muted: var(--stone);
+  --line: var(--hairline);
+  --white: var(--linen);
+  --coral: var(--tomato);
+  --coral-dark: var(--tomato);
+  --coral-soft: #f6e4df;
+  --shadow: 0 16px 40px rgba(28, 25, 23, 0.14);
   color-scheme: light;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: var(--cream-deep);
+  font-family: var(--font-sans), "Inter Tight", sans-serif;
+  background: var(--paper);
   color: var(--ink);
   min-height: 100vh;
 }
@@ -33,14 +41,15 @@ img { max-width: 100%; display: block; }
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  background: rgba(251, 246, 241, 0.92);
+  background: rgba(247, 243, 236, 0.92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid transparent;
 }
 .wordmark {
   font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.03em;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -80,9 +89,11 @@ img { max-width: 100%; display: block; }
 }
 .stats b { display: block; font-size: 20px; }
 .stats span { color: var(--muted); font-size: 13px; }
-.profile-head h1, .place-body h1, .home h1 {
+.profile-head h1, .place-body h1, .home h1, .legal h1 {
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-weight: 400;
   font-size: 32px;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   margin: 18px 0 6px;
 }
 .bio, .meta, .note { color: #5f584f; line-height: 1.45; }
@@ -202,7 +213,7 @@ img { max-width: 100%; display: block; }
   font-weight: 800;
   text-decoration: none;
 }
-.button.coral { background: var(--coral); color: white; box-shadow: 0 10px 20px rgba(255, 90, 108, 0.28); }
+.button.coral { background: var(--ink); color: var(--paper); box-shadow: 0 10px 20px rgba(28, 25, 23, 0.16); }
 .button.ghost { background: #f1ebe4; color: var(--ink); }
 .cta-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .sticky-cta {
@@ -361,7 +372,14 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
   margin: 0 auto;
   padding: 48px 0;
 }
-.soon h1 { font-size: 40px; letter-spacing: -0.045em; line-height: 1.05; margin: 12px 0; }
+.soon h1 {
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  font-size: 40px;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 12px 0;
+}
 .waitlist { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
 .waitlist label { font-weight: 800; }
 .waitlist input {
@@ -376,8 +394,9 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-
   border-radius: 999px;
   padding: 14px 18px;
   font-weight: 800;
-  background: var(--coral);
-  color: white;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-sans), "Inter Tight", sans-serif;
 }
 .waitlist input:disabled, .waitlist button:disabled { opacity: 0.55; }
 .todo {

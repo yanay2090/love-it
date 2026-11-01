@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, shadow } from '../theme';
+import { colors, fonts, shadow } from '../theme';
 
 export function haptic(): void {
   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   avatar: { alignItems: 'center', justifyContent: 'center' },
   ring: { borderWidth: 3, borderColor: '#FFD5DB' },
   avatarText: { color: colors.white, fontWeight: '800' },
-  wordmark: { fontWeight: '800', color: colors.ink, letterSpacing: -1 },
+  wordmark: { fontFamily: fonts.serif, color: colors.ink, letterSpacing: -0.4 },
   search: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -188,25 +188,25 @@ const styles = StyleSheet.create({
     height: 48,
     ...shadow.soft,
   },
-  searchInput: { flex: 1, fontSize: 16, color: colors.ink, paddingVertical: 0 },
+  searchInput: { flex: 1, fontFamily: fonts.sans, fontSize: 16, color: colors.ink, paddingVertical: 0 },
   heart: { alignItems: 'center', justifyContent: 'center' },
   primary: {
     flex: 1,
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.coral,
+    backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
     ...shadow.soft,
   },
-  primaryText: { color: colors.white, fontWeight: '800', fontSize: 16 },
+  primaryText: { color: colors.paper, fontFamily: fonts.sansSemibold, fontSize: 16 },
   secondary: {
     height: 52,
     paddingHorizontal: 18,
     borderRadius: 26,
-    backgroundColor: '#F1EBE4',
+    backgroundColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },

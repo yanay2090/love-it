@@ -66,7 +66,7 @@ function Tab({
   active: boolean;
   onPress: () => void;
 }) {
-  const color = active ? colors.coral : '#B7AFA6';
+  const color = active ? colors.ink : colors.stone;
   const name = active ? icon : (`${icon}-outline` as const);
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.tab}>
@@ -87,12 +87,12 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.coral,
+    backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow.card,
-    shadowColor: colors.coral,
-    shadowOpacity: 0.35,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.2,
   },
   row: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end' },
   tab: { alignItems: 'center', gap: 2, minWidth: 72, paddingBottom: 2 },

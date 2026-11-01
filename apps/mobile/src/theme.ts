@@ -1,40 +1,53 @@
+import { tokens } from '@love-it/shared';
+
+const palette = tokens.color;
+
+/**
+ * Screen colors. Names from the first coral draft stay so existing styles
+ * compile; they now point at Field Notes. Tomato is the heart, not the buttons.
+ */
 export const colors = {
-  cream: '#FBF6F1',
-  creamDeep: '#F3EBE3',
-  ink: '#1B1918',
-  muted: '#8D847C',
-  faint: '#C4BBB2',
-  line: '#EFE4DA',
-  white: '#FFFFFF',
-  coral: '#FF5A6C',
-  coralDark: '#F04458',
-  coralSoft: '#FFE6EA',
-  chip: '#1E1E1E',
-  shadow: '#6B4B3E',
-  mapLand: '#EFE4D4',
-  mapWater: '#D5E7F0',
-  mapPark: '#E3ECD4',
-  mapRoad: '#F7F3EC',
+  ink: palette.ink,
+  paper: palette.paper,
+  linen: palette.linen,
+  tomato: palette.tomato,
+  clay: palette.clay,
+  stone: palette.stone,
+  hairline: palette.hairline,
+  sea: palette.sea,
+  cream: palette.paper,
+  creamDeep: palette.paper,
+  muted: palette.stone,
+  faint: '#C4BBB4',
+  line: palette.hairline,
+  white: palette.linen,
+  coral: palette.tomato,
+  coralDark: palette.tomato,
+  coralSoft: '#F6E4DF',
+  chip: palette.ink,
+  shadow: palette.ink,
+  mapLand: palette.map.land,
+  mapWater: palette.map.water,
+  mapPark: palette.map.park,
+  mapRoad: palette.map.road,
+  scrim: palette.scrim,
 };
 
-export const space = {
-  screen: 16,
-  radius: 22,
-};
+export const space = tokens.space;
+
+export const radius = tokens.radius;
+
+export const fonts = tokens.font;
+
+export const typeScale = tokens.type;
 
 export const shadow = {
   card: {
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    ...tokens.elevation.card,
+    elevation: 6,
   },
   soft: {
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    ...tokens.elevation.float,
+    elevation: 3,
   },
 } as const;
