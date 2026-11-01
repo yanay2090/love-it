@@ -21,7 +21,7 @@
       "package": "com.loveit.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FF5A6C"
+        "backgroundColor": "#F7F3EC"
       }
     },
     "web": {
@@ -36,7 +36,7 @@
         {
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#FBF6F1"
+          "backgroundColor": "#F7F3EC"
         }
       ],
       [
