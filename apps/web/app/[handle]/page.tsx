@@ -5,16 +5,25 @@ import { OpenAppButton } from '../../components/OpenAppButton';
 import { PinMap } from '../../components/PinMap';
 import { TrackPublicPage } from '../../components/TrackPublicPage';
 import { loadPublicProfile, seedHandles } from '../../lib/data';
+import { isPlaceholderMode } from '../../lib/launch';
+
+function hiddenSeedHandle(handle: string): boolean {
+  if (!isPlaceholderMode()) return false;
+  const key = handle.trim().replace(/^@+/, '').toLowerCase();
+  return seedHandles().includes(key);
+}
 
 export function generateStaticParams() {
+  if (isPlaceholderMode()) return [];
   return seedHandles().flatMap((handle) => (validateHandle(handle).ok ? [{ handle }] : []));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
-  // Static folders (app/places, and later app/about, app/login, …) are matched
+  // Static folders (app/places, app/privacy, app/support, …) are matched
   // before this dynamic segment. Reserved names that have no page 404 here.
-  if (!validateHandle(handle).ok) return { title: 'Love it' };
+  if (hiddenSeedHandle(handle)) return { title: 'Love it', robots: { index: false, follow: false } };
+  if (!validateHandle(handle).ok) return { title: 'Love it', robots: { index: false, follow: false } };
   const page = await loadPublicProfile(handle);
   if (!page) return { title: 'Love it' };
   return {
@@ -25,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
 
 export default async function ProfilePage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-  if (!validateHandle(handle).ok) notFound();
+  if (hiddenSeedHandle(handle) || !validateHandle(handle).ok) notFound();
   const page = await loadPublicProfile(handle);
   if (!page) notFound();
   const { profile } = page;

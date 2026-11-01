@@ -92,6 +92,59 @@ Production build:
 npm run build:web
 ```
 
+A production build defaults to placeholder mode (coming soon on `/`, seed profiles and place pages 404). `npm run dev:web` stays on the full diary. Set `NEXT_PUBLIC_LAUNCH_MODE=live` before the build when the public diary should ship.
+
+## Deploy to loveitapp.com
+
+The site is a Cloudflare Worker in `apps/web`, built with `@opennextjs/cloudflare` for the Workers Free plan. DNS stays on Cloudflare. This is not a Vercel project.
+
+Log Wrangler in once, from `apps/web` (the browser login is stored for later deploys):
+
+```bash
+cd apps/web
+npx wrangler login
+```
+
+Deploy from the repo root. This builds Next.js and ships the Worker named `loveitapp`:
+
+```bash
+npm run deploy
+```
+
+`npm run preview` builds the same bundle and serves it locally in the Workers runtime. Leave `NEXT_PUBLIC_LAUNCH_MODE` unset, or set it to `placeholder`, so production is the coming-soon page. Set it to `live` only when seed profiles and place pages should be public.
+
+`apps/web/wrangler.jsonc` routes `loveitapp.com` and `www.loveitapp.com` at the Worker. Requests to `www` redirect to `https://loveitapp.com`. Deploy attaches those custom domains when the zone is on the same Cloudflare account. If Wrangler says it could not add the hostname, attach them in the dashboard:
+
+1. Workers & Pages → **loveitapp** → Settings → Domains & Routes.
+2. Add Custom domain `loveitapp.com`.
+3. Add Custom domain `www.loveitapp.com`.
+4. Keep the DNS records Cloudflare creates (proxied). Do not point the names at another host.
+
+Worker variables (Workers & Pages → loveitapp → Settings → Variables and secrets). Next inlines `NEXT_PUBLIC_*` at build time, so put the same values in the environment or in `apps/web/.env.production` before `npm run deploy`:
+
+| Variable | Value |
+| --- | --- |
+| `NEXT_PUBLIC_LAUNCH_MODE` | `placeholder` until the diary is public, then `live` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...`. Never an `sb_secret_` key. |
+| `NEXT_PUBLIC_SITE_URL` | `https://loveitapp.com` |
+
+Verify after deploy:
+
+```bash
+curl -sI https://loveitapp.com | head -n 15
+curl -sI https://www.loveitapp.com | head -n 15
+curl -sI https://loveitapp.com/yael.loves | head -n 15
+curl -sI https://loveitapp.com/tom.sips | head -n 15
+curl -sI https://loveitapp.com/places/place_lev_florentin | head -n 15
+curl -sI https://loveitapp.com/privacy | head -n 15
+curl -sI https://loveitapp.com/support | head -n 15
+```
+
+Home is 200 and indexable. `www` is a 308 to `https://loveitapp.com/`. `/yael.loves`, `/tom.sips`, and place pages are 404. `/privacy` and `/support` are 200 with `X-Robots-Tag: noindex`. Open https://loveitapp.com and confirm the coming-soon screen. Wrangler also prints a `*.workers.dev` URL at the end of deploy.
+
+To click the coming-soon page on this machine before deploy: `NEXT_PUBLIC_LAUNCH_MODE=placeholder npm run dev:web`.
+
 ## Apply the Supabase migration
 
 The app does not need a database to run. When you are ready:
@@ -184,7 +237,8 @@ See `.env.example`. All of it is optional for the starter.
 | `EXPO_PUBLIC_APPLE_MAPS_TOKEN` | mobile | Apple Maps Server API search |
 | `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | mobile | Photo upload. Key format `sb_publishable_...`. Never an `sb_secret_` key. |
 | `NEXT_PUBLIC_POSTHOG_KEY` | web | PostHog |
-| `NEXT_PUBLIC_SITE_URL` | web | Public origin |
+| `NEXT_PUBLIC_SITE_URL` | web | Public origin. `https://loveitapp.com` in production. |
+| `NEXT_PUBLIC_LAUNCH_MODE` | web | `placeholder` (default in production) or `live`. |
 | `NEXT_PUBLIC_APP_STORE_URL` | web | Install CTA |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | web | Live public pages. Key format `sb_publishable_...`. Never an `sb_secret_` key. |
 | `SMOKE_TEST_EMAIL` | smoke test | Real inbox, for example `you@gmail.com`. The script adds a random `+tag`. Not read by the apps. |
@@ -198,6 +252,8 @@ See `.env.example`. All of it is optional for the starter.
 | `npm run verify` | root, seed and search checks |
 | `npm run dev:web` | root |
 | `npm run build:web` | root |
+| `npm run preview` | root, Workers runtime locally (`apps/web` `preview`) |
+| `npm run deploy` | root, build and deploy loveitapp.com (`apps/web` `deploy`) |
 | `npx expo start --ios` | `apps/mobile` |
 | `npx expo run:ios --device` | `apps/mobile` |
 | `SMOKE_TEST_EMAIL=you@gmail.com npm run supabase:smoke` | root, signs up `you+smoke…@gmail.com` |

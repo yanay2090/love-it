@@ -1,8 +1,26 @@
 import { seedData } from '@love-it/shared';
+import type { Metadata } from 'next';
+import { ComingSoon } from '../components/ComingSoon';
+import { isPlaceholderMode } from '../lib/launch';
+
+export function generateMetadata(): Metadata {
+  if (!isPlaceholderMode()) {
+    return {
+      title: 'Love it',
+      description: 'A map of the cafes and restaurants you actually love. Tel Aviv first.',
+    };
+  }
+  return {
+    title: 'Love it — coming soon to iPhone in Tel Aviv',
+    description: 'A map of the cafes and restaurants you actually love. Coming soon to iPhone in Tel Aviv.',
+    robots: { index: true, follow: true },
+  };
+}
 
 const featured = ['yael.loves', 'tom.sips', 'maya.ofer'];
 
 export default function HomePage() {
+  if (isPlaceholderMode()) return <ComingSoon />;
   const people = featured.flatMap((handle) => {
     const profile = seedData.profiles.find((item) => item.handle === handle);
     return profile ? [profile] : [];
