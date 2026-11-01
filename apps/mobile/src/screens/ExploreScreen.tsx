@@ -12,14 +12,17 @@ import {
   type PlaceCategory,
 } from '@love-it/shared';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap, type PlaceMapHandle } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
 import { Avatar, Chip, HeartButton, SearchField, Thumb, Wordmark } from '../components/ui';
 import { track } from '../analytics';
+import { brandHaptic, brandSpring, motionTokens } from '../motion';
 import { useApp } from '../store';
 import { colors, fonts, shadow } from '../theme';
 
@@ -99,7 +102,17 @@ export function ExploreScreen() {
   return (
     <View style={styles.screen}>
       {mode === 'map' ? (
-        <PlaceMap ref={mapRef} pins={pins} selectedId={selected?.id} onSelect={setSelectedId} />
+        <PlaceMap
+          ref={mapRef}
+          pins={pins}
+          selectedId={selected?.id}
+          onSelect={(placeId) => {
+            brandHaptic('pinSelect');
+            setSelectedId(placeId);
+            const place = places.find((item) => item.id === placeId);
+            if (place) mapRef.current?.recenter({ lat: place.lat, lng: place.lng });
+          }}
+        />
       ) : (
         <FlatList
           data={places}
@@ -197,9 +210,36 @@ function PreviewCard({
   if (!view) return null;
   const friends = view.friendLovers;
   const quote = view.notes.find((note) => note.entry.note)?.entry.note;
+  const reduced = Boolean(useReducedMotion());
+  const { height } = useWindowDimensions();
+  const drag = useSharedValue(reduced ? 0 : 80);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      drag.value = brandSpring('smooth', 0, reduced);
+    }, reduced ? 0 : motionTokens.cardDelayAfterPin);
+    return () => clearTimeout(timer);
+  }, [drag, reduced]);
+  const pan = Gesture.Pan()
+    .activeOffsetY([-18, 18])
+    .onUpdate((event) => {
+      drag.value = event.translationY < 0 ? event.translationY : event.translationY * 0.35;
+    })
+    .onEnd((event) => {
+      const commit =
+        event.translationY < -height * motionTokens.thresholds.cardCommitRatio ||
+        event.velocityY < motionTokens.thresholds.cardCommitVelocity;
+      if (commit && event.translationY < 0) {
+        runOnJS(brandHaptic)('detailOpen');
+        runOnJS(onOpen)();
+      }
+      drag.value = brandSpring('smooth', 0, reduced, event.velocityY);
+    });
+  const rise = useAnimatedStyle(() => ({ transform: [{ translateY: reduced ? Math.min(drag.value, 8) : drag.value }] }));
   return (
+    <GestureDetector gesture={pan}>
+    <Animated.View style={rise}>
     <Pressable style={styles.card} onPress={onOpen}>
-      <Thumb uri={view.heroPhotos[0]} size={96} />
+      <Thumb uri={view.heroPhotos[0]} size={96} sharedTag={`place-${placeId}-photo`} />
       <View style={{ flex: 1 }}>
         <Text style={styles.overline} numberOfLines={1}>
           {placeListMeta(view.place).toUpperCase()}
@@ -224,6 +264,8 @@ function PreviewCard({
       </View>
       <HeartButton filled={Boolean(view.viewerEntry)} onPress={onHeart} size={36} />
     </Pressable>
+    </Animated.View>
+    </GestureDetector>
   );
 }
 

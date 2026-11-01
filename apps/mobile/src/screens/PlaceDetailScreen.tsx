@@ -74,7 +74,7 @@ export function PlaceDetailScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-        <Gallery photos={view.heroPhotos} />
+        <Gallery photos={view.heroPhotos} placeId={place.id} onDismiss={() => router.back()} />
         <View style={styles.body}>
           <Text style={styles.overline}>{placeDetailMeta(place).toUpperCase()}</Text>
           <Text style={styles.title}>{place.name}</Text>

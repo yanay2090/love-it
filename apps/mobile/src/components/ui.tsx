@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSequence } from 'react-native-reanimated';
+import { brandHaptic, brandSpring, brandTiming } from '../motion';
 import { colors, fonts, shadow } from '../theme';
 
 export function haptic(): void {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+  brandHaptic('addOpen');
 }
 
 export function Avatar({
@@ -84,25 +85,64 @@ export function HeartButton({
   onPress: () => void;
   size?: number;
 }) {
+  const reduced = Boolean(useReducedMotion());
+  const scale = useSharedValue(1);
+  const ring = useSharedValue(0);
+  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: 1 - ring.value,
+    transform: [{ scale: 1 + ring.value * 0.8 }],
+  }));
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={filled ? 'Loved' : 'Love it'}
+      onPressIn={() => {
+        scale.value = brandSpring('snappy', 0.9, reduced);
+      }}
       onPress={() => {
-        haptic();
+        if (filled) {
+          brandHaptic('unsave');
+          scale.value = withSequence(brandSpring('snappy', 0.94, reduced), brandSpring('snappy', 1, reduced));
+        } else {
+          brandHaptic('save');
+          scale.value = withSequence(brandSpring('snappy', reduced ? 1 : 1.18, reduced), brandSpring('snappy', 1, reduced));
+          ring.value = 0;
+          ring.value = brandTiming(1, reduced, 'out');
+        }
         onPress();
       }}
-      style={[
-        styles.heart,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: filled ? colors.coral : colors.coralSoft,
-        },
-      ]}
     >
-      <Ionicons name={filled ? 'heart' : 'heart-outline'} size={size * 0.46} color={filled ? colors.white : colors.coral} />
+      <Animated.View
+        style={[
+          styles.heart,
+          scaleStyle,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: filled ? colors.ink : colors.linen,
+          },
+        ]}
+      >
+        {!filled && !reduced ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              ringStyle,
+              {
+                position: 'absolute',
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                borderWidth: 1,
+                borderColor: colors.tomato,
+              },
+            ]}
+          />
+        ) : null}
+        <Ionicons name={filled ? 'heart' : 'heart-outline'} size={size * 0.46} color={filled ? colors.tomato : colors.ink} />
+      </Animated.View>
     </Pressable>
   );
 }
@@ -162,12 +202,21 @@ export function Chip({
   );
 }
 
-export function Thumb({ uri, size = 64 }: { uri?: string; size?: number }) {
+export function Thumb({ uri, size = 64, sharedTag }: { uri?: string; size?: number; sharedTag?: string }) {
   if (!uri) {
     return <View style={[styles.thumb, { width: size, height: size, borderRadius: 12 }]} />;
   }
-  return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: 12 }} contentFit="cover" />;
+  return (
+    <AnimatedImage
+      source={{ uri }}
+      style={{ width: size, height: size, borderRadius: 12 }}
+      contentFit="cover"
+      sharedTransitionTag={sharedTag}
+    />
+  );
 }
+
+const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 export function cardShadow(extra?: StyleProp<ViewStyle>): StyleProp<ViewStyle> {
   return [shadow.card, extra];

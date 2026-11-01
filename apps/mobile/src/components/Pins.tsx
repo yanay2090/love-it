@@ -1,6 +1,9 @@
 import type { MapPin } from '@love-it/shared';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, Text } from 'react-native';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import Svg, { Circle, Ellipse, G, Line, Path, Text as SvgText } from 'react-native-svg';
+import { brandSpring, brandTiming, motionTokens } from '../motion';
 import { colors, fonts } from '../theme';
 
 const HEART =
@@ -9,15 +12,31 @@ const HEART =
 /** Field Notes pins: mine, friend, selected, cluster. */
 export function PinMarker({ pin, selected }: { pin: MapPin; selected: boolean }) {
   const count = Number.parseInt(pin.label ?? '', 10) || pin.people.length || 1;
+  const reduced = Boolean(useReducedMotion());
+  const scale = useSharedValue(selected ? motionTokens.pinSelectedScale : 1);
+  const label = useSharedValue(selected ? 1 : 0);
+  useEffect(() => {
+    scale.value = brandSpring('snappy', selected && !reduced ? motionTokens.pinSelectedScale : 1, reduced);
+    label.value = brandTiming(selected ? 1 : 0, reduced, 'in');
+  }, [label, reduced, scale, selected]);
+  const pinStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: 12 }, { scale: scale.value }, { translateY: -12 }],
+  }));
+  const labelStyle = useAnimatedStyle(() => ({
+    opacity: label.value,
+    transform: [{ translateX: reduced ? 0 : (1 - label.value) * -4 }],
+  }));
   return (
-    <View style={styles.wrap} accessibilityLabel={pin.name}>
-      {selected ? <SelectedPin /> : pin.kind === 'cluster' ? <ClusterPin count={count} /> : pin.kind === 'avatar' ? <FriendPin /> : <MinePin />}
-      {selected ? (
+    <Animated.View style={styles.wrap} accessibilityLabel={pin.name}>
+      <Animated.View style={pinStyle}>
+        {selected ? <SelectedPin /> : pin.kind === 'cluster' ? <ClusterPin count={count} /> : pin.kind === 'avatar' ? <FriendPin /> : <MinePin />}
+      </Animated.View>
+      <Animated.View style={labelStyle}>
         <Text style={styles.label} numberOfLines={1}>
-          {pin.name}
+          {selected ? pin.name : ' '}
         </Text>
-      ) : null}
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 

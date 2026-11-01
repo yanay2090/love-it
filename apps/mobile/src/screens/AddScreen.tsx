@@ -40,7 +40,8 @@ import { pickPlacePhotos, uploadPlacePhoto, type PreparedPhoto } from '../photos
 import { searchTelAvivPlaces } from '../search';
 import { useApp } from '../store';
 import { colors, shadow } from '../theme';
-import { Thumb, haptic } from '../components/ui';
+import { Thumb } from '../components/ui';
+import { brandHaptic } from '../motion';
 
 function one(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -154,7 +155,7 @@ export function AddScreen() {
         photo_count: uploaded.length,
         has_note: note.trim().length > 0,
       });
-      haptic();
+      brandHaptic('addComplete');
       router.replace(`/place/${entry.placeId}?from=list`);
     } finally {
       setBusy(false);
@@ -256,7 +257,7 @@ export function AddScreen() {
               <Pressable
                 style={styles.bigHeart}
                 onPress={() => {
-                  haptic();
+                  brandHaptic('save');
                   setRating(5);
                 }}
               >
