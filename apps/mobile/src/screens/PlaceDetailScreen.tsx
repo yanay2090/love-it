@@ -10,7 +10,7 @@ import { Gallery } from '../components/Gallery';
 import { Avatar } from '../components/ui';
 import { track } from '../analytics';
 import { useApp } from '../store';
-import { colors, shadow } from '../theme';
+import { colors, fonts, shadow } from '../theme';
 
 function one(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -76,33 +76,43 @@ export function PlaceDetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <Gallery photos={view.heroPhotos} />
         <View style={styles.body}>
+          <Text style={styles.overline}>{placeDetailMeta(place).toUpperCase()}</Text>
           <Text style={styles.title}>{place.name}</Text>
           <Text style={styles.meta}>
-            {placeDetailMeta(place)} · {priceLabel(place.priceLevel)}
+            {place.subtitle || place.neighborhood}
+            {place.neighborhood ? ` · ${place.neighborhood}` : ''} · {priceLabel(place.priceLevel)}
           </Text>
           <View style={styles.actions}>
-            <Pressable style={styles.love} onPress={onLove}>
-              <Ionicons name="heart" size={18} color={colors.white} />
-              <Text style={styles.loveText}>{saved ? 'Loved' : 'Love it'}</Text>
+            <Pressable style={[styles.pill, saved ? styles.pillOn : styles.pillOff]} onPress={onLove}>
+              <Ionicons name="heart" size={16} color={saved ? colors.tomato : colors.ink} />
+              <Text style={[styles.pillText, saved && styles.pillTextOn]}>{saved ? 'Loved' : 'Love it'}</Text>
             </Pressable>
             <Pressable
-              style={styles.directions}
+              style={[styles.pill, styles.pillOff]}
               onPress={() =>
                 void Linking.openURL(
                   `https://maps.apple.com/?daddr=${place.lat},${place.lng}&q=${encodeURIComponent(place.name)}`,
                 )
               }
             >
-              <Ionicons name="navigate" size={16} color={colors.ink} />
-              <Text style={styles.directionsText}>Directions</Text>
+              <Ionicons name="navigate" size={15} color={colors.ink} />
+              <Text style={styles.pillText}>Directions</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.pill, styles.pillOff]}
+              onPress={() =>
+                void Linking.openURL(`https://maps.apple.com/?q=${encodeURIComponent(place.name)}&ll=${place.lat},${place.lng}`)
+              }
+            >
+              <Text style={styles.pillText}>Website</Text>
             </Pressable>
           </View>
 
           <View style={styles.sectionHead}>
-            <Text style={styles.section}>Photos from friends {view.friendPhotos.length}</Text>
+            <Text style={styles.section}>Photos from friends</Text>
             {view.friendPhotos.length > 0 ? (
               <Pressable onPress={() => setGrid((value) => !value)}>
-                <Text style={styles.seeAll}>{grid ? 'Strip' : 'See all'}</Text>
+                <Text style={styles.seeAll}>{grid ? 'Strip' : `See all ${view.friendPhotos.length}`}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -139,16 +149,10 @@ export function PlaceDetailScreen() {
 
           {view.notes.map((note) => (
             <Pressable key={note.entry.id} style={styles.note} onPress={() => router.push(`/u/${note.profile.handle}`)}>
-              <View style={styles.noteHead}>
-                <Avatar initials={note.profile.initials} color={note.profile.avatarColor} size={36} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.noteName}>{note.profile.displayName}</Text>
-                </View>
-                <Text style={styles.score}>
-                  ♥ {note.entry.rating}/5 · {ratingLabel(note.entry.rating)}
-                </Text>
-              </View>
-              {note.entry.note ? <Text style={styles.noteBody}>{note.entry.note}</Text> : null}
+              {note.entry.note ? <Text style={styles.quote}>“{note.entry.note}”</Text> : null}
+              <Text style={styles.quoteBy}>
+                {note.profile.displayName} · {ratingLabel(note.entry.rating)}
+              </Text>
               <View style={styles.tags}>
                 {note.entry.tags.map((tag) => (
                   <View key={tag} style={styles.tag}>
@@ -200,35 +204,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 18,
   },
-  title: { fontSize: 32, fontWeight: '800', letterSpacing: -0.6, color: colors.ink },
-  meta: { color: colors.muted, marginTop: 4, fontSize: 15 },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  love: {
-    flex: 1,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.coral,
+  overline: { fontFamily: fonts.sansSemibold, fontSize: 11, letterSpacing: 1.2, color: colors.stone },
+  title: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 40, letterSpacing: -0.3, color: colors.ink, marginTop: 4 },
+  meta: { fontFamily: fonts.sans, color: colors.stone, marginTop: 4, fontSize: 15 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
+  pill: {
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    ...shadow.soft,
+    gap: 6,
   },
-  loveText: { color: colors.white, fontWeight: '800', fontSize: 16 },
-  directions: {
-    flex: 1,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#EFE8E1',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  directionsText: { fontWeight: '800', color: colors.ink },
+  pillOn: { backgroundColor: colors.ink },
+  pillOff: { backgroundColor: colors.linen, borderWidth: 0.5, borderColor: colors.hairline },
+  pillText: { fontFamily: fonts.sansSemibold, color: colors.ink, fontSize: 15 },
+  pillTextOn: { color: colors.paper },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 22 },
-  section: { fontSize: 18, fontWeight: '800' },
-  seeAll: { color: colors.coral, fontWeight: '800' },
+  section: { fontFamily: fonts.sansSemibold, fontSize: 13, letterSpacing: 1.1, color: colors.stone, textTransform: 'uppercase' },
+  seeAll: { fontFamily: fonts.sansMedium, color: colors.ink, fontSize: 13 },
   strip: { gap: 10, paddingVertical: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingVertical: 12 },
   gridItem: { width: '30%' },
@@ -254,8 +249,10 @@ const styles = StyleSheet.create({
     ...shadow.soft,
   },
   noteHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  quote: { fontFamily: fonts.serifItalic, fontSize: 18, lineHeight: 24, color: colors.ink },
+  quoteBy: { fontFamily: fonts.sansMedium, fontSize: 12, color: colors.stone, marginTop: 8 },
   noteName: { fontWeight: '800', fontSize: 16 },
-  score: { color: colors.coral, fontWeight: '800' },
+  score: { color: colors.tomato, fontWeight: '800' },
   noteBody: { marginTop: 8, fontSize: 15, lineHeight: 21 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   tag: { backgroundColor: '#F6EFE8', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },

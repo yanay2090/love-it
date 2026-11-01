@@ -29,7 +29,7 @@ export function Gallery({ photos, height = 390 }: { photos: string[]; height?: n
       <View style={styles.counter}>
         <Ionicons name="camera-outline" size={14} color={colors.white} />
         <Text style={styles.counterText}>
-          {index + 1}/{photos.length}
+          {index + 1} / {photos.length}
         </Text>
       </View>
       <View style={styles.dots}>
@@ -43,7 +43,7 @@ export function Gallery({ photos, height = 390 }: { photos: string[]; height?: n
 
 const styles = StyleSheet.create({
   fallback: {
-    backgroundColor: '#F4A03C',
+    backgroundColor: colors.hairline,
   },
   counter: {
     position: 'absolute',

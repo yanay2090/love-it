@@ -164,9 +164,9 @@ export function Chip({
 
 export function Thumb({ uri, size = 64 }: { uri?: string; size?: number }) {
   if (!uri) {
-    return <View style={[styles.thumb, { width: size, height: size, borderRadius: 16 }]} />;
+    return <View style={[styles.thumb, { width: size, height: size, borderRadius: 12 }]} />;
   }
-  return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: 16 }} contentFit="cover" />;
+  return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: 12 }} contentFit="cover" />;
 }
 
 export function cardShadow(extra?: StyleProp<ViewStyle>): StyleProp<ViewStyle> {

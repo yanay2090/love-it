@@ -21,7 +21,7 @@ import { PlaceRow } from '../components/PlaceRow';
 import { Avatar, Chip, HeartButton, SearchField, Thumb, Wordmark } from '../components/ui';
 import { track } from '../analytics';
 import { useApp } from '../store';
-import { colors, shadow } from '../theme';
+import { colors, fonts, shadow } from '../theme';
 
 const MAIN_CHIPS: Array<{ id: ExploreChip; label: string }> = [
   { id: 'all', label: 'All' },
@@ -196,31 +196,33 @@ function PreviewCard({
   const view = buildPlaceView(data, placeId, me.id);
   if (!view) return null;
   const friends = view.friendLovers;
+  const quote = view.notes.find((note) => note.entry.note)?.entry.note;
   return (
     <Pressable style={styles.card} onPress={onOpen}>
-      <Thumb uri={view.heroPhotos[0]} size={62} />
+      <Thumb uri={view.heroPhotos[0]} size={96} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{view.place.name}</Text>
-        <Text style={styles.cardMeta} numberOfLines={1}>
-          {placeListMeta(view.place)}
-          {view.place.localName ? ` · ${view.place.localName}` : ''}
+        <Text style={styles.overline} numberOfLines={1}>
+          {placeListMeta(view.place).toUpperCase()}
         </Text>
+        <Text style={styles.cardTitle} numberOfLines={1}>
+          {view.place.name}
+        </Text>
+        <Text style={styles.cardMeta} numberOfLines={1}>
+          {view.place.subtitle || view.place.neighborhood}
+          {view.place.neighborhood ? ` · ${view.place.neighborhood}` : ''}
+        </Text>
+        {quote ? (
+          <Text style={styles.quote} numberOfLines={2}>
+            “{quote}”
+          </Text>
+        ) : null}
         {friends.length > 0 ? (
-          <View style={styles.friendLine}>
-            <View style={styles.stack}>
-              {friends.slice(0, 3).map((friend, index) => (
-                <View key={friend.profile.id} style={{ marginLeft: index === 0 ? 0 : -8 }}>
-                  <Avatar initials={friend.profile.initials} color={friend.profile.avatarColor} size={20} />
-                </View>
-              ))}
-            </View>
-            <Text style={styles.friendNames} numberOfLines={1}>
-              {formatNameList(friends.map((friend) => friend.profile))}
-            </Text>
-          </View>
+          <Text style={styles.friendNames} numberOfLines={1}>
+            {formatNameList(friends.map((friend) => friend.profile))} love it
+          </Text>
         ) : null}
       </View>
-      <HeartButton filled={Boolean(view.viewerEntry)} onPress={onHeart} />
+      <HeartButton filled={Boolean(view.viewerEntry)} onPress={onHeart} size={36} />
     </Pressable>
   );
 }
@@ -255,16 +257,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.white,
-    borderRadius: 22,
+    backgroundColor: colors.linen,
+    borderRadius: 20,
     padding: 12,
     marginBottom: 8,
     ...shadow.card,
   },
-  cardTitle: { fontSize: 17, fontWeight: '800', color: colors.ink },
-  cardMeta: { color: colors.muted, marginTop: 2 },
-  friendLine: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  stack: { flexDirection: 'row' },
-  friendNames: { color: colors.coral, fontWeight: '700', flex: 1 },
+  overline: { fontFamily: fonts.sansSemibold, fontSize: 11, letterSpacing: 1.1, color: colors.stone },
+  cardTitle: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 26, color: colors.ink, marginTop: 2 },
+  cardMeta: { fontFamily: fonts.sans, color: colors.stone, marginTop: 2, fontSize: 13 },
+  quote: { fontFamily: fonts.serifItalic, color: colors.ink, marginTop: 6, fontSize: 14, lineHeight: 18 },
+  friendNames: { fontFamily: fonts.sansMedium, color: colors.clay, marginTop: 6, fontSize: 12 },
   empty: { color: colors.muted, padding: 24 },
 });
