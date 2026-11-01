@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
-export function LegalPage({ title, todo, children }: { title: string; todo: string; children: ReactNode }) {
+// Interim App Store pages. Replace the body copy before submission; do not put developer notes in the markup.
+export function LegalPage({ title, children }: { title: string; children: ReactNode }) {
   return (
     <>
       <header className="topbar">
@@ -10,7 +11,6 @@ export function LegalPage({ title, todo, children }: { title: string; todo: stri
       </header>
       <main className="page home legal">
         <h1>{title}</h1>
-        <p className="todo">TODO: {todo}</p>
         {children}
         <p>
           <a href="/">Back home</a>

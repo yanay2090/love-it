@@ -159,6 +159,7 @@ Or with a direct connection string:
 ```bash
 psql "$DATABASE_URL" -f supabase/migrations/0001_love_it_init.sql
 psql "$DATABASE_URL" -f supabase/migrations/0002_handle_rules.sql
+psql "$DATABASE_URL" -f supabase/migrations/0003_waitlist.sql
 ```
 
 The migrations:
@@ -170,6 +171,7 @@ The migrations:
 - `profiles` are created from `auth.users` by a trigger. Handles look like `yael.loves`: 3–30 characters of `a-z`, `0-9`, `.`, `_`, unique case-insensitively. `0002_handle_rules.sql` rejects reserved names (`login`, `places`, …). A reserved handle on signup falls back to `lover_<id>` instead of failing the account.
 - `follows`, `reports`, and `blocks` back Apple Guideline 1.2. People can report a profile from the ··· menu and block someone, which hides them and drops the follow. Review `reports` in the Supabase dashboard (the service role bypasses RLS).
 - RLS: public saves are world-readable (so the link-in-bio page works with the publishable key). Friends-only saves require a follow. Private saves are the author. Blocks hide both sides.
+- `0003_waitlist.sql` stores launch emails. Anon can insert. Nobody can read the table with the publishable key. Signups show up in the Supabase dashboard under Table Editor → waitlist.
 
 Copy `.env.example` when you have keys.
 

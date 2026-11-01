@@ -12,12 +12,10 @@ export function generateMetadata(): Metadata {
 
 export default function SupportPage() {
   return (
-    <LegalPage title="Support" todo="add a real contact address before the App Store submission.">
+    <LegalPage title="Support">
       <p className="bio">
-        Love it is coming soon to iPhone in Tel Aviv. This page is here so the App Store listing has a support URL.
-        A contact address will replace this note.
+        Love it is coming soon to iPhone in Tel Aviv. A contact address will be published here when the app opens.
       </p>
-      <p className="bio">This page is a placeholder.</p>
     </LegalPage>
   );
 }

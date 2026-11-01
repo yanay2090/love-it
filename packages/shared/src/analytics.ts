@@ -15,6 +15,7 @@ export const DAY_ONE_EVENTS = [
   'public_page_viewed',
   'public_page_cta_clicked',
   'user_followed',
+  'waitlist_joined',
 ] as const;
 
 export type AnalyticsEventName = (typeof DAY_ONE_EVENTS)[number];
@@ -38,6 +39,7 @@ export interface AnalyticsEventMap {
   public_page_viewed: { handle: string };
   public_page_cta_clicked: { handle: string; cta: 'open_app' | 'install' };
   user_followed: { target_user_id: string; target_handle: string };
+  waitlist_joined: { source: 'placeholder' };
 }
 
 export type AnalyticsProperties = Record<string, string | number | boolean>;
