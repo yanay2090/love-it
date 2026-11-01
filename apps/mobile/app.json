@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Love it",
+    "slug": "love-it",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "loveit",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yanaybenyosef.loveit",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Love it adds up to 10 photos when you save a place.",
+        "NSLocationWhenInUseUsageDescription": "Love it centers the map on cafes and restaurants near you.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.loveit.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F7F3EC"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F3EC"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Love it adds up to 10 photos when you save a place."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Love it centers the map on cafes and restaurants near you."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

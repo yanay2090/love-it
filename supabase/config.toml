@@ -1,0 +1,6 @@
+# Minimal Supabase CLI config so `supabase db push` can apply
+# supabase/migrations/0001_love_it_init.sql after you link a project.
+project_id = "love-it"
+
+[db]
+major_version = 15
