@@ -100,14 +100,14 @@ export function MyPageScreen() {
         <SecondaryButton label="Edit page" onPress={() => router.push('/edit-profile')} />
       </View>
 
-      <View style={styles.placesHead}>
-        <Text style={styles.placesTitle}>My places {entries.length}</Text>
-        <MapListToggle mode={mode} onChange={setMode} />
-      </View>
+      <Text style={styles.placesTitle}>My places {entries.length}</Text>
       <View style={styles.chips}>
         {CHIPS.map((item) => (
           <Chip key={item.id} label={item.label} active={chip === item.id} onPress={() => setChip(item.id)} />
         ))}
+      </View>
+      <View style={styles.toggleRow}>
+        <MapListToggle mode={mode} onChange={setMode} />
       </View>
 
       <View style={styles.mapWrap}>
@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
   name: { fontSize: 26, fontWeight: '800', marginTop: 14, letterSpacing: -0.4 },
   bio: { color: colors.muted, marginTop: 4, fontSize: 15 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  placesHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 },
-  placesTitle: { fontSize: 20, fontWeight: '800' },
-  chips: { flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 10 },
+  placesTitle: { fontSize: 20, fontWeight: '800', marginTop: 18 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  toggleRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, marginBottom: 10 },
   mapWrap: { flex: 1, marginHorizontal: -16, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   publicPill: {
     position: 'absolute',

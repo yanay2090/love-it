@@ -1,4 +1,5 @@
 import type { Entry, LoveItData, Place, PlaceCategory, PlacePhoto, UserProfile } from './domain';
+import { distanceMeters } from './geo';
 import { firstName } from './labels';
 
 export interface Lover {
@@ -166,6 +167,34 @@ export function filterExplorePlaces(
       .join(' ')
       .toLowerCase();
     return haystack.includes(q) || (place.localName?.includes(query.trim()) ?? false);
+  });
+}
+
+/**
+ * Same order for the Explore list, the map pins, and the preview card.
+ * Nearest first when we have a location; otherwise most loved, then newest save.
+ */
+export function sortExplorePlaces(
+  data: LoveItData,
+  places: Place[],
+  viewerId: string | null,
+  origin: { lat: number; lng: number } | null,
+): Place[] {
+  const loved = (place: Place) => visibleEntriesForPlace(data, place.id, viewerId).length;
+  const newest = (place: Place) =>
+    visibleEntriesForPlace(data, place.id, viewerId).reduce(
+      (latest, entry) => (entry.createdAt > latest ? entry.createdAt : latest),
+      '',
+    );
+  return [...places].sort((a, b) => {
+    if (origin) {
+      const delta = distanceMeters(origin, a) - distanceMeters(origin, b);
+      if (delta !== 0) return delta;
+    } else {
+      const byLoved = loved(b) - loved(a);
+      if (byLoved !== 0) return byLoved;
+    }
+    return newest(b).localeCompare(newest(a));
   });
 }
 

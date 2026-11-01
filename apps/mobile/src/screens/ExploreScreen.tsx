@@ -8,12 +8,13 @@ import {
   friendLovedPlaces,
   isInTelAvivRegion,
   placeListMeta,
+  sortExplorePlaces,
   type ExploreChip,
   type PlaceCategory,
 } from '@love-it/shared';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,17 +50,40 @@ export function ExploreScreen() {
   const [more, setMore] = useState(false);
   const [mode, setMode] = useState<'map' | 'list'>('map');
   const [selectedId, setSelectedId] = useState('place_lev_florentin');
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<PlaceMapHandle>(null);
   const openedAt = useRef(Date.now());
 
   useFocusEffect(
     useCallback(() => {
       setLastTab('explore');
+      let cancelled = false;
+      void (async () => {
+        try {
+          const Location = await import('expo-location');
+          const permission = await Location.getForegroundPermissionsAsync();
+          if (!permission.granted || cancelled) return;
+          const last = await Location.getLastKnownPositionAsync();
+          const position = last ?? (await Location.getCurrentPositionAsync({}));
+          if (!cancelled) {
+            setOrigin({ lat: position.coords.latitude, lng: position.coords.longitude });
+          }
+        } catch {
+          // No fix: the list stays most-loved, then newest.
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
     }, [setLastTab]),
   );
 
   const friendCount = friendLovedPlaces(data, me.id).length;
-  const places = useMemo(() => filterExplorePlaces(data, me.id, chip, query), [data, me.id, chip, query]);
+  const places = useMemo(
+    () => sortExplorePlaces(data, filterExplorePlaces(data, me.id, chip, query), me.id, origin),
+    [data, me.id, chip, query, origin],
+  );
   const pins = useMemo(() => explorePins(data, me.id, places), [data, me.id, places]);
   const selected = places.find((place) => place.id === selectedId) ?? places[0];
 
@@ -93,6 +117,7 @@ export function ExploreScreen() {
       }
       const position = await Location.getCurrentPositionAsync({});
       const point = { lat: position.coords.latitude, lng: position.coords.longitude };
+      setOrigin(point);
       mapRef.current?.recenter(isInTelAvivRegion(point) ? point : undefined);
     } catch {
       mapRef.current?.recenter();
@@ -117,7 +142,7 @@ export function ExploreScreen() {
         <FlatList
           data={places}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingTop: insets.top + 168, paddingHorizontal: 16, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingTop: headerHeight + 12, paddingHorizontal: 16, paddingBottom: 24 }}
           ListEmptyComponent={<Text style={styles.empty}>No places match that.</Text>}
           renderItem={({ item }) => {
             const view = buildPlaceView(data, item.id, me.id);
@@ -139,7 +164,11 @@ export function ExploreScreen() {
         />
       )}
 
-      <View style={[styles.header, { paddingTop: insets.top + 6 }]} pointerEvents="box-none">
+      <View
+        style={[styles.header, { paddingTop: insets.top + 6 }]}
+        pointerEvents="box-none"
+        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
+      >
         <View style={styles.titleRow}>
           <Wordmark />
           <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="My page">
@@ -147,7 +176,7 @@ export function ExploreScreen() {
           </Pressable>
         </View>
         <SearchField value={query} onChangeText={setQuery} placeholder="Search places" />
-        <View style={styles.chips}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {MAIN_CHIPS.map((item) => (
             <Chip
               key={item.id}
@@ -160,25 +189,26 @@ export function ExploreScreen() {
           <Pressable style={styles.filter} onPress={() => setMore((value) => !value)}>
             <Ionicons name="options-outline" size={18} color={colors.ink} />
           </Pressable>
-        </View>
+        </ScrollView>
         {more ? (
-          <View style={styles.chips}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {MORE_CHIPS.map((item) => (
               <Chip key={item.id} label={item.label} active={chip === item.id} onPress={() => setChip(item.id)} />
             ))}
-          </View>
+          </ScrollView>
         ) : null}
-      </View>
-
-      {mode === 'map' ? (
-        <View style={styles.mapChrome} pointerEvents="box-none">
-          <View style={styles.controls}>
-            <MapListToggle mode={mode} onChange={setMode} />
+        <View style={styles.toggleRow}>
+          <MapListToggle mode={mode} onChange={setMode} />
+          {mode === 'map' ? (
             <Pressable style={styles.locate} onPress={() => void recenter()} accessibilityLabel="Recenter map">
               <Ionicons name="locate" size={18} color={colors.ink} />
             </Pressable>
-          </View>
-          <View style={{ flex: 1 }} />
+          ) : null}
+        </View>
+      </View>
+
+      {mode === 'map' && headerHeight > 0 ? (
+        <View style={[styles.mapChrome, { top: headerHeight }]} pointerEvents="box-none">
           {selected ? (
             <PreviewCard
               placeId={selected.id}
@@ -187,11 +217,7 @@ export function ExploreScreen() {
             />
           ) : null}
         </View>
-      ) : (
-        <View style={[styles.listToggle, { top: insets.top + 150 }]}>
-          <MapListToggle mode={mode} onChange={setMode} />
-        </View>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -271,9 +297,10 @@ function PreviewCard({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
-  header: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, gap: 10 },
+  header: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: 10, gap: 10 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  chips: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingRight: 4 },
+  toggleRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8 },
   filter: {
     width: 36,
     height: 36,
@@ -283,8 +310,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadow.soft,
   },
-  mapChrome: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, padding: 16, paddingTop: 210 },
-  controls: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8 },
+  mapChrome: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, justifyContent: 'flex-end' },
   locate: {
     width: 40,
     height: 40,
@@ -294,7 +320,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadow.soft,
   },
-  listToggle: { position: 'absolute', right: 16 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
