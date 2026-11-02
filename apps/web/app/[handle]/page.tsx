@@ -51,9 +51,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
       <main className="page">
         <article className="sheet">
           <div className="profile-head">
-            <div className="avatar" style={{ background: profile.avatarColor }}>
-              {profile.initials}
-            </div>
+            {profile.avatarUrl ? (
+              <img className="avatar photo" src={profile.avatarUrl} alt="" />
+            ) : (
+              <div className="avatar" style={{ background: profile.avatarColor }}>
+                {profile.initials}
+              </div>
+            )}
             <div className="stats">
               <div>
                 <b>{page.loved}</b>

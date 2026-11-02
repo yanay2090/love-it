@@ -106,7 +106,7 @@ async function loadRemoteProfile(handle: string): Promise<PublicProfilePage | nu
   const key = handle.trim().replace(/^@/, '').toLowerCase();
   const { data: profileRow, error } = await client
     .from('profiles')
-    .select('id, handle, display_name, bio, city')
+    .select('id, handle, display_name, bio, city, avatar_url')
     .eq('handle', key)
     .maybeSingle();
   if (error || !profileRow) return null;
@@ -135,6 +135,7 @@ async function loadRemoteProfile(handle: string): Promise<PublicProfilePage | nu
     bio: (profileRow.bio as string) ?? '',
     initials: initialsFrom(profileRow.display_name as string),
     avatarColor: '#F08A3A',
+    avatarUrl: (profileRow.avatar_url as string | null) ?? null,
     city: (profileRow.city as string) ?? 'Tel Aviv',
   };
 

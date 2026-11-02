@@ -22,6 +22,12 @@ import { useAuth } from '../auth/AuthProvider';
 import { useApp } from '../store';
 import { colors } from '../theme';
 
+function initialsFrom(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = (parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '');
+  return (letters || name.slice(0, 2) || '•').toUpperCase();
+}
+
 const CHIPS: Array<{ id: ExploreChip; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'cafe', label: 'Coffee' },
@@ -33,7 +39,7 @@ export function MyPageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { data, me, setLastTab, quickSave, resetDemo } = useApp();
-  const { session, signOut, deleteAccount } = useAuth();
+  const { session, profile, profileError, signOut, deleteAccount, refreshProfile } = useAuth();
   const requireAccount = useAccountGate();
   const [mode, setMode] = useState<'map' | 'list'>('map');
   const [chip, setChip] = useState<ExploreChip>('all');
@@ -44,8 +50,15 @@ export function MyPageScreen() {
   useFocusEffect(
     useCallback(() => {
       setLastTab('me');
-    }, [setLastTab]),
+      if (session) void refreshProfile();
+    }, [refreshProfile, session, setLastTab]),
   );
+
+  const signedIn = Boolean(session);
+  const pageName = signedIn ? (profile?.displayName ?? '') : me.displayName;
+  const pageHandle = signedIn ? (profile?.handle ?? '') : me.handle;
+  const pageAvatar = signedIn ? profile?.avatarUrl : null;
+  const pageInitials = initialsFrom(pageName || pageHandle);
 
   const entries = useMemo(() => {
     return entriesForProfile(data, me.id, me.id).filter((entry) => {
@@ -63,15 +76,16 @@ export function MyPageScreen() {
   }, [data, me.id, entries]);
 
   async function sharePage() {
-    const url = `${(process.env.EXPO_PUBLIC_WEB_URL || 'http://localhost:3000').replace(/\/$/, '')}/${me.handle}`;
-    track('profile_shared', { handle: me.handle, surface: 'my_page' });
+    const handle = pageHandle || me.handle;
+    const url = `${(process.env.EXPO_PUBLIC_WEB_URL || 'http://localhost:3000').replace(/\/$/, '')}/${handle}`;
+    track('profile_shared', { handle, surface: 'my_page' });
     await Share.share({ message: `My favorite places in Tel Aviv — ${url}`, url });
   }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
       <View style={styles.top}>
-        <Text style={styles.handle}>@{me.handle}</Text>
+        <Text style={styles.handle}>@{pageHandle || '…'}</Text>
         <View style={styles.topActions}>
           <Pressable onPress={() => void sharePage()} accessibilityLabel="Share my page">
             <Ionicons name="share-outline" size={22} color={colors.ink} />
@@ -83,7 +97,7 @@ export function MyPageScreen() {
       </View>
 
       <View style={styles.identity}>
-        <Avatar initials={me.initials} color={me.avatarColor} size={84} ring />
+        <Avatar initials={pageInitials} color={me.avatarColor} size={84} ring imageUri={pageAvatar} />
         <View style={styles.stats}>
           <Stat value={String(entriesForProfile(data, me.id, me.id).length)} label="Loved" />
           <Stat value={String(followerCount(data, me.id))} label="Followers" />
@@ -101,8 +115,9 @@ export function MyPageScreen() {
         </Pressable>
       ) : null}
 
-      <Text style={styles.name}>{me.displayName}</Text>
-      <Text style={styles.bio}>{me.bio}</Text>
+      <Text style={styles.name}>{pageName || ' '}</Text>
+      <Text style={styles.bio}>{signedIn ? (profile?.bio ?? '') : me.bio}</Text>
+      {profileError ? <Text style={styles.profileError}>{profileError}</Text> : null}
 
       <View style={styles.actions}>
         <PrimaryButton label="Share my page" icon="share-outline" onPress={() => void sharePage()} />
@@ -287,6 +302,7 @@ const styles = StyleSheet.create({
   signInText: { color: colors.paper, fontWeight: '800' },
   name: { fontSize: 26, fontWeight: '800', marginTop: 14, letterSpacing: -0.4 },
   bio: { color: colors.muted, marginTop: 4, fontSize: 15 },
+  profileError: { color: colors.tomato, marginTop: 8, fontWeight: '700' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   placesTitle: { fontSize: 20, fontWeight: '800', marginTop: 18 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },

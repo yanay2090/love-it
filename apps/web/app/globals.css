@@ -77,8 +77,9 @@ img { max-width: 100%; display: block; }
   color: white;
   font-weight: 800;
   font-size: 28px;
-  box-shadow: inset 0 0 0 3px white, 0 0 0 3px #ffd0d6;
+  box-shadow: inset 0 0 0 3px white, 0 0 0 3px #e5ded3;
 }
+img.avatar.photo { object-fit: cover; }
 .handle { color: var(--muted); font-weight: 700; margin: 18px 0 0; }
 .stats {
   display: grid;

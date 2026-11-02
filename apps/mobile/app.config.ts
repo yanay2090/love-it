@@ -1,4 +1,25 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+
+/** Expo loads .env before this file. Read it again so a prebuild started without exported vars still sees them. */
+function loadEnvFile(path: string) {
+  if (!existsSync(path)) return;
+  for (const line of readFileSync(path, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq <= 0) continue;
+    const name = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (process.env[name] === undefined) process.env[name] = value;
+  }
+}
+
+loadEnvFile(resolve(__dirname, '.env'));
 
 function appleSignInEnabled(): boolean {
   return process.env.LOVEIT_APPLE_SIGNIN === '1';

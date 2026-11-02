@@ -14,11 +14,13 @@ export function Avatar({
   color,
   size = 36,
   ring = false,
+  imageUri,
 }: {
   initials: string;
   color: string;
   size?: number;
   ring?: boolean;
+  imageUri?: string | null;
 }) {
   return (
     <View
@@ -33,7 +35,11 @@ export function Avatar({
         ring && styles.ring,
       ]}
     >
-      <Text style={[styles.avatarText, { fontSize: size * 0.34 }]}>{initials}</Text>
+      {imageUri ? (
+        <Image source={{ uri: imageUri }} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" />
+      ) : (
+        <Text style={[styles.avatarText, { fontSize: size * 0.34 }]}>{initials}</Text>
+      )}
     </View>
   );
 }

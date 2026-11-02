@@ -5,6 +5,7 @@ import * as Crypto from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState, Platform } from 'react-native';
 import { getSupabase } from './client';
+import { identityFromUser, isPlaceholderName } from './identity';
 import { migrateLocalDiary } from './migrateLocal';
 
 export interface AccountProfile {
@@ -12,6 +13,7 @@ export interface AccountProfile {
   handle: string;
   displayName: string;
   bio: string;
+  avatarUrl: string | null;
 }
 
 interface AuthContextValue {
@@ -20,6 +22,7 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   profile: AccountProfile | null;
+  profileError: string | null;
   needsHandle: boolean;
   refreshProfile: () => Promise<void>;
   signInWithApple: () => Promise<string | null>;
@@ -46,12 +49,21 @@ function configureGoogle(): string | null {
   return null;
 }
 
-function mapProfile(row: { id: string; handle: string; display_name: string; bio: string | null }): AccountProfile {
+const PROFILE_COLUMNS = 'id, handle, display_name, bio, avatar_url';
+
+function mapProfile(row: {
+  id: string;
+  handle: string;
+  display_name: string;
+  bio: string | null;
+  avatar_url: string | null;
+}): AccountProfile {
   return {
     id: row.id,
     handle: row.handle,
     displayName: row.display_name,
     bio: row.bio ?? '',
+    avatarUrl: row.avatar_url,
   };
 }
 
@@ -60,19 +72,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<AccountProfile | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const refreshProfile = useCallback(async () => {
-    if (!supabase || !session?.user.id) {
+    if (!supabase || !session?.user) {
       setProfile(null);
+      setProfileError(null);
       return;
     }
-    const { data } = await supabase
+    const userId = session.user.id;
+    const { data, error } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', userId).maybeSingle();
+    if (error) {
+      setProfileError(error.message);
+      return;
+    }
+    if (!data) {
+      setProfile(null);
+      setProfileError(null);
+      return;
+    }
+    const identity = identityFromUser(session.user);
+    const patch: { display_name?: string; avatar_url?: string } = {};
+    if (isPlaceholderName(data.display_name) && identity.displayName) patch.display_name = identity.displayName;
+    if (!data.avatar_url && identity.avatarUrl) patch.avatar_url = identity.avatarUrl;
+    if (Object.keys(patch).length === 0) {
+      setProfile(mapProfile(data));
+      setProfileError(null);
+      return;
+    }
+    const { data: updated, error: updateError } = await supabase
       .from('profiles')
-      .select('id, handle, display_name, bio')
-      .eq('id', session.user.id)
+      .update(patch)
+      .eq('id', userId)
+      .select(PROFILE_COLUMNS)
       .maybeSingle();
-    setProfile(data ? mapProfile(data) : null);
-  }, [session?.user.id, supabase]);
+    if (updateError) {
+      setProfile(mapProfile(data));
+      setProfileError(updateError.message);
+      return;
+    }
+    if (!updated) {
+      setProfile(mapProfile(data));
+      setProfileError('Could not save your name and photo. You are signed in, but the profile update was rejected.');
+      return;
+    }
+    setProfile(mapProfile(updated));
+    setProfileError(null);
+  }, [session?.user, supabase]);
 
   useEffect(() => {
     if (!supabase) {
@@ -102,8 +148,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase || !session?.user.id) {
       setProfile(null);
+      setProfileError(null);
       return;
     }
+    setProfile((current) => (current && current.id !== session.user.id ? null : current));
     void refreshProfile();
     void migrateLocalDiary(supabase, session.user.id).catch(() => undefined);
   }, [refreshProfile, session?.user.id, supabase]);
@@ -164,28 +212,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const claimHandle = useCallback(
     async (handle: string, displayName: string) => {
       if (!supabase || !session?.user.id) return 'Sign in first.';
-      const name = displayName.trim() || 'New on Love it';
-      const { data: existing } = await supabase.from('profiles').select('id').eq('id', session.user.id).maybeSingle();
+      const identity = identityFromUser(session.user);
+      const name = displayName.trim() || identity.displayName || 'New on Love it';
+      const avatarUrl = identity.avatarUrl || null;
+      const { data: existing, error: readError } = await supabase
+        .from('profiles')
+        .select('id, avatar_url')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      if (readError) return readError.message;
+      const savedAvatar = avatarUrl || (existing?.avatar_url as string | null) || null;
       const write = existing
-        ? supabase.from('profiles').update({ handle, display_name: name }).eq('id', session.user.id)
-        : supabase.from('profiles').insert({ id: session.user.id, handle, display_name: name });
-      const { error } = await write;
+        ? supabase
+            .from('profiles')
+            .update({ handle, display_name: name, avatar_url: savedAvatar })
+            .eq('id', session.user.id)
+        : supabase.from('profiles').insert({
+            id: session.user.id,
+            handle,
+            display_name: name,
+            avatar_url: savedAvatar,
+          });
+      const { data: saved, error } = await write.select(PROFILE_COLUMNS).maybeSingle();
       if (error) {
         if (error.code === '23505' || /duplicate key|profiles_handle/i.test(error.message)) return 'That handle is taken.';
         return error.message;
+      }
+      if (!saved) {
+        return 'Could not save your profile. The database rejected the update for this signed-in user.';
       }
       const { error: metaError } = await supabase.auth.updateUser({ data: { handle_chosen: true, handle } });
       if (metaError) return metaError.message;
       await refreshProfile();
       return null;
     },
-    [refreshProfile, session?.user.id, supabase],
+    [refreshProfile, session?.user, supabase],
   );
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
     setProfile(null);
+    setProfileError(null);
   }, [supabase]);
 
   const deleteAccount = useCallback(async () => {
@@ -204,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user: session?.user ?? null,
       profile,
+      profileError,
       needsHandle,
       refreshProfile,
       signInWithApple,
@@ -217,6 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       deleteAccount,
       needsHandle,
       profile,
+      profileError,
       ready,
       refreshProfile,
       session,

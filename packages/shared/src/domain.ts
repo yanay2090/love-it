@@ -69,6 +69,8 @@ export interface UserProfile {
   bio: string;
   initials: string;
   avatarColor: string;
+  /** Remote photo, when the signed-in account has one. */
+  avatarUrl?: string | null;
   city: string;
 }
 
