@@ -1,5 +1,9 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
+function appleSignInEnabled(): boolean {
+  return process.env.LOVEIT_APPLE_SIGNIN === '1';
+}
+
 function reversedGoogleScheme(iosClientId: string | undefined): string | undefined {
   const clientId = iosClientId?.trim();
   if (!clientId?.endsWith('.apps.googleusercontent.com')) return undefined;
@@ -8,7 +12,9 @@ function reversedGoogleScheme(iosClientId: string | undefined): string | undefin
 }
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const plugins: NonNullable<ExpoConfig['plugins']> = [...(config.plugins ?? []), 'expo-apple-authentication'];
+  const appleSignIn = appleSignInEnabled();
+  const plugins: NonNullable<ExpoConfig['plugins']> = [...(config.plugins ?? [])];
+  if (appleSignIn) plugins.push('expo-apple-authentication');
   const scheme = reversedGoogleScheme(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
   if (scheme) {
     plugins.push(['@react-native-google-signin/google-signin', { iosUrlScheme: scheme }]);
@@ -17,6 +23,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: config.name ?? 'Love it',
     slug: config.slug ?? 'love-it',
+    ios: {
+      ...config.ios,
+      usesAppleSignIn: appleSignIn,
+    },
+    extra: {
+      ...config.extra,
+      appleSignIn,
+    },
     plugins,
   };
 };

@@ -8,14 +8,16 @@ Bundle ID: `com.yanaybenyosef.loveit`.
 
 Supabase project: `jjrahfknqkrqtjgygmhl`.
 
-After this checklist, rebuild the dev client. A JavaScript reload does not pick up the Apple entitlement or the Google URL scheme.
+After this checklist, rebuild the dev client. A JavaScript reload does not pick up the Google URL scheme, or the Sign in with Apple entitlement when you turn that on.
+
+`LOVEIT_APPLE_SIGNIN` defaults to off. A free Personal Team build does not request `com.apple.developer.applesignin`, and the sign-in screen shows Google and email only. Set `LOVEIT_APPLE_SIGNIN=1` in `apps/mobile/.env` after the App ID has the Sign in with Apple capability, then rebuild. The Apple button appears only in that build.
 
 ```bash
 cd apps/mobile
 npx expo run:ios --device
 ```
 
-A free Personal Team cannot sign the Sign in with Apple entitlement. The native rebuild can fail at code signing until the paid Apple Developer account is approved and the capability is on the App ID. Google and email code do not need that entitlement.
+A free Personal Team can install this app. Leave `LOVEIT_APPLE_SIGNIN` unset so the entitlement is not in the binary. Google and email code do not need it.
 
 ## 1. Supabase providers
 
@@ -56,9 +58,10 @@ EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
 1. Apple Developer → Identifiers → `com.yanaybenyosef.loveit` → enable Sign in with Apple.
 2. Create a Sign in with Apple key. Note the key ID, team ID, and download the `.p8` once.
 3. Supabase Apple provider: Services ID, team ID, key ID, and the `.p8` contents.
-4. Rebuild with `npx expo run:ios --device` using the paid team, not the free Personal Team.
+4. In `apps/mobile/.env` set `LOVEIT_APPLE_SIGNIN=1`.
+5. Rebuild with `npx expo run:ios --device` using the paid team, not the free Personal Team.
 
-`expo-apple-authentication` is already in the Expo config, so the entitlement is requested on the next native build.
+That flag is what adds `ios.usesAppleSignIn` and the `expo-apple-authentication` config plugin, which request `com.apple.developer.applesignin`. With the flag off, those are omitted.
 
 ## 5. App environment
 
@@ -82,7 +85,7 @@ That includes `supabase/migrations/0004_delete_own_account.sql`. The app calls `
 ## 6. What to try on the phone
 
 1. Browse Explore while signed out. Opening + Add or a heart asks you to sign in.
-2. Apple, then Google, then email, in that order. Apple is the black system button.
+2. With `LOVEIT_APPLE_SIGNIN` off, the screen shows Google, then email. After you set the flag and rebuild, Apple is the black system button above Google.
 3. Email: request a code, type the 6 digits, then pick a handle. Reserved names such as `login` and `places` are rejected.
 4. Kill and reopen the app. The session should still be there.
 5. My page → ··· → Sign out, and Delete account.

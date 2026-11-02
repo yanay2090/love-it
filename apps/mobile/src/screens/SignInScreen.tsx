@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthProvider';
 import { colors, fonts } from '../theme';
+
+const appleSignInEnabled = Constants.expoConfig?.extra?.appleSignIn === true;
 
 export function SignInScreen() {
   const router = useRouter();
@@ -41,7 +44,7 @@ export function SignInScreen() {
         <Text style={styles.message}>Add the Supabase URL and publishable key, then rebuild the app.</Text>
       ) : null}
 
-      {Platform.OS === 'ios' ? (
+      {appleSignInEnabled && Platform.OS === 'ios' ? (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
