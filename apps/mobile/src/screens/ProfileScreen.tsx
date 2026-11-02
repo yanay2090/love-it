@@ -9,11 +9,12 @@ import {
   photosForEntry,
   placeById,
   profileByHandle,
+  profileUrl,
   type PlaceCategory,
 } from '@love-it/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackTabs } from '../components/AppTabBar';
 import { MapListToggle } from '../components/MapListToggle';
@@ -35,9 +36,13 @@ export function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const handle = one(useLocalSearchParams<{ handle: string }>().handle);
-  const { data, me, toggleFollow, quickSave, block, report } = useApp();
+  const { data, me, toggleFollow, quickSave, block, report, ensureProfile, signedIn } = useApp();
   const requireAccount = useAccountGate();
   const profile = profileByHandle(data, handle);
+  useEffect(() => {
+    if (profile || !signedIn || !handle) return;
+    void ensureProfile(handle);
+  }, [ensureProfile, handle, profile, signedIn]);
   const [mode, setMode] = useState<'map' | 'list'>('list');
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -63,16 +68,27 @@ export function ProfileScreen() {
   const pins = diaryPins(data, profile.id).filter((pin) => entries.some((entry) => entry.placeId === pin.placeId));
   const isMe = profile.id === me.id;
 
-  function onFollow() {
-    const nowFollowing = toggleFollow(profile!.id);
-    if (nowFollowing) {
-      track('user_followed', { target_user_id: profile!.id, target_handle: profile!.handle });
+  async function onFollow() {
+    if (!requireAccount()) return;
+    try {
+      const nowFollowing = await toggleFollow(profile!.id);
+      if (nowFollowing) {
+        track('user_followed', { target_user_id: profile!.id, target_handle: profile!.handle });
+      }
+    } catch (error) {
+      Alert.alert('Could not follow', error instanceof Error ? error.message : 'Try again.');
     }
   }
 
-  function onQuick(placeId: string, category: PlaceCategory) {
+  async function onQuick(placeId: string, category: PlaceCategory) {
     if (!requireAccount()) return;
-    const result = quickSave(placeId);
+    let result: Awaited<ReturnType<typeof quickSave>>;
+    try {
+      result = await quickSave(placeId);
+    } catch (error) {
+      Alert.alert('Could not save', error instanceof Error ? error.message : 'Try again.');
+      return;
+    }
     if (result.saved && result.entry) {
       track('place_saved', {
         place_id: placeId,
@@ -87,7 +103,7 @@ export function ProfileScreen() {
   }
 
   async function sharePage() {
-    const url = `${(process.env.EXPO_PUBLIC_WEB_URL || 'http://localhost:3000').replace(/\/$/, '')}/${profile!.handle}`;
+    const url = profileUrl(profile!.handle, process.env.EXPO_PUBLIC_WEB_URL);
     track('profile_shared', { handle: profile!.handle, surface: 'other_page' });
     await Share.share({ message: `${profile!.displayName}’s places on Love it — ${url}`, url });
   }
@@ -105,7 +121,7 @@ export function ProfileScreen() {
           </Pressable>
         </View>
         <View style={styles.identity}>
-          <Avatar initials={profile.initials} color={profile.avatarColor} size={84} ring />
+          <Avatar initials={profile.initials} color={profile.avatarColor} size={84} ring imageUri={profile.avatarUrl} />
           <View style={styles.stats}>
             <Stat value={String(entries.length)} label="Loved" />
             <Stat value={String(followerCount(data, profile.id))} label="Followers" />
@@ -197,8 +213,12 @@ export function ProfileScreen() {
                 style={styles.sheetRow}
                 onPress={() => {
                   setMenu(false);
-                  block(profile.id);
-                  router.back();
+                  if (!requireAccount()) return;
+                  void block(profile.id)
+                    .then(() => router.back())
+                    .catch((error: unknown) => {
+                      Alert.alert('Could not block', error instanceof Error ? error.message : 'Try again.');
+                    });
                 }}
               >
                 <Text style={[styles.sheetText, { color: colors.coral }]}>Block @{profile.handle}</Text>
@@ -227,12 +247,18 @@ export function ProfileScreen() {
             <PrimaryButton
               label={thanks ? 'Sent' : 'Send report'}
               onPress={() => {
-                report({ targetType: 'profile', targetId: profile.id, reason, details });
-                setThanks(true);
-                setTimeout(() => {
-                  setReporting(false);
-                  setThanks(false);
-                }, 700);
+                if (!requireAccount()) return;
+                void report({ targetType: 'profile', targetId: profile.id, reason, details }).then((message) => {
+                  if (message) {
+                    Alert.alert('Could not send the report', message);
+                    return;
+                  }
+                  setThanks(true);
+                  setTimeout(() => {
+                    setReporting(false);
+                    setThanks(false);
+                  }, 700);
+                });
               }}
             />
           </Pressable>

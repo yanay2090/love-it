@@ -22,7 +22,7 @@ export type AnalyticsEventName = (typeof DAY_ONE_EVENTS)[number];
 
 export interface AnalyticsEventMap {
   app_opened: { source: 'cold_start' };
-  signup_completed: { method: 'demo' | 'apple' | 'email' };
+  signup_completed: { method: 'apple' | 'google' };
   gmaps_import_started: { source: 'my_page' };
   gmaps_import_completed: { imported_count: number };
   place_saved: {

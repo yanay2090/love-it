@@ -6,6 +6,7 @@ import {
   followingCount,
   photosForEntry,
   placeById,
+  profileUrl,
   type ExploreChip,
 } from '@love-it/shared';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -22,12 +23,6 @@ import { useAuth } from '../auth/AuthProvider';
 import { useApp } from '../store';
 import { colors } from '../theme';
 
-function initialsFrom(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters = (parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '');
-  return (letters || name.slice(0, 2) || '•').toUpperCase();
-}
-
 const CHIPS: Array<{ id: ExploreChip; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'cafe', label: 'Coffee' },
@@ -38,8 +33,8 @@ const CHIPS: Array<{ id: ExploreChip; label: string }> = [
 export function MyPageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data, me, setLastTab, quickSave, resetDemo } = useApp();
-  const { session, profile, profileError, signOut, deleteAccount, refreshProfile } = useAuth();
+  const { data, me, setLastTab, quickSave, diaryError, reloadDiary } = useApp();
+  const { session, profileError, signOut, deleteAccount, refreshProfile } = useAuth();
   const requireAccount = useAccountGate();
   const [mode, setMode] = useState<'map' | 'list'>('map');
   const [chip, setChip] = useState<ExploreChip>('all');
@@ -50,15 +45,16 @@ export function MyPageScreen() {
   useFocusEffect(
     useCallback(() => {
       setLastTab('me');
-      if (session) void refreshProfile();
-    }, [refreshProfile, session, setLastTab]),
+      if (session) {
+        void refreshProfile();
+        void reloadDiary();
+      }
+    }, [refreshProfile, reloadDiary, session, setLastTab]),
   );
 
-  const signedIn = Boolean(session);
-  const pageName = signedIn ? (profile?.displayName ?? '') : me.displayName;
-  const pageHandle = signedIn ? (profile?.handle ?? '') : me.handle;
-  const pageAvatar = signedIn ? profile?.avatarUrl : null;
-  const pageInitials = initialsFrom(pageName || pageHandle);
+  const pageName = me.displayName;
+  const pageHandle = me.handle;
+  const pageAvatar = me.avatarUrl;
 
   const entries = useMemo(() => {
     return entriesForProfile(data, me.id, me.id).filter((entry) => {
@@ -76,8 +72,9 @@ export function MyPageScreen() {
   }, [data, me.id, entries]);
 
   async function sharePage() {
-    const handle = pageHandle || me.handle;
-    const url = `${(process.env.EXPO_PUBLIC_WEB_URL || 'http://localhost:3000').replace(/\/$/, '')}/${handle}`;
+    const handle = pageHandle;
+    if (!handle) return;
+    const url = profileUrl(handle, process.env.EXPO_PUBLIC_WEB_URL);
     track('profile_shared', { handle, surface: 'my_page' });
     await Share.share({ message: `My favorite places in Tel Aviv — ${url}`, url });
   }
@@ -97,7 +94,7 @@ export function MyPageScreen() {
       </View>
 
       <View style={styles.identity}>
-        <Avatar initials={pageInitials} color={me.avatarColor} size={84} ring imageUri={pageAvatar} />
+        <Avatar initials={me.initials} color={me.avatarColor} size={84} ring imageUri={pageAvatar} />
         <View style={styles.stats}>
           <Stat value={String(entriesForProfile(data, me.id, me.id).length)} label="Loved" />
           <Stat value={String(followerCount(data, me.id))} label="Followers" />
@@ -116,8 +113,8 @@ export function MyPageScreen() {
       ) : null}
 
       <Text style={styles.name}>{pageName || ' '}</Text>
-      <Text style={styles.bio}>{signedIn ? (profile?.bio ?? '') : me.bio}</Text>
-      {profileError ? <Text style={styles.profileError}>{profileError}</Text> : null}
+      <Text style={styles.bio}>{me.bio}</Text>
+      {profileError || diaryError ? <Text style={styles.profileError}>{profileError || diaryError}</Text> : null}
 
       <View style={styles.actions}>
         <PrimaryButton label="Share my page" icon="share-outline" onPress={() => void sharePage()} />
@@ -174,7 +171,9 @@ export function MyPageScreen() {
                   }}
                   onHeart={() => {
                     if (!requireAccount()) return;
-                    quickSave(place.id);
+                    void quickSave(place.id).catch((error: unknown) => {
+                      Alert.alert('Could not update that save', error instanceof Error ? error.message : 'Try again.');
+                    });
                   }}
                 />
               );
@@ -187,24 +186,6 @@ export function MyPageScreen() {
         <Pressable style={styles.backdrop} onPress={() => setMenu(false)}>
           <Pressable style={styles.sheet}>
             <Text style={styles.sheetTitle}>Your page</Text>
-            <Pressable
-              style={styles.sheetRow}
-              onPress={() => {
-                setMenu(false);
-                router.push('/import');
-              }}
-            >
-              <Text style={styles.sheetText}>Import from Google Maps</Text>
-            </Pressable>
-            <Pressable
-              style={styles.sheetRow}
-              onPress={() => {
-                setMenu(false);
-                resetDemo();
-              }}
-            >
-              <Text style={styles.sheetText}>Reset demo data</Text>
-            </Pressable>
             {session ? (
               <>
                 <Pressable

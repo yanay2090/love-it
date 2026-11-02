@@ -1,7 +1,7 @@
 import { followerCount, isBlocked, searchProfiles } from '@love-it/shared';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, SearchField } from '../components/ui';
 import { track } from '../analytics';
@@ -11,9 +11,20 @@ import { colors } from '../theme';
 export function FindFriendsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data, me, toggleFollow, unblock } = useApp();
+  const { data, me, toggleFollow, unblock, searchPeople, signedIn } = useApp();
   const [query, setQuery] = useState('');
-  const people = useMemo(() => searchProfiles(data, me.id, query), [data, me.id, query]);
+  const [people, setPeople] = useState(() => searchProfiles(data, me.id, ''));
+  const profileCount = data.profiles.length;
+  useEffect(() => {
+    let cancelled = false;
+    const run = signedIn ? searchPeople(query) : Promise.resolve(searchProfiles(data, me.id, query));
+    void run.then((next) => {
+      if (!cancelled) setPeople(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [me.id, profileCount, query, searchPeople, signedIn]);
   const blocked = people.filter((person) => isBlocked(data, me.id, person.id));
   const open = people.filter((person) => !isBlocked(data, me.id, person.id));
 
@@ -53,15 +64,27 @@ export function FindFriendsScreen() {
                 </Text>
               </View>
               {blockedPerson ? (
-                <Pressable style={styles.follow} onPress={() => unblock(item.id)}>
+                <Pressable
+                  style={styles.follow}
+                  onPress={() => {
+                    void unblock(item.id).catch((error: unknown) => {
+                      Alert.alert('Could not unblock', error instanceof Error ? error.message : 'Try again.');
+                    });
+                  }}
+                >
                   <Text style={styles.followText}>Unblock</Text>
                 </Pressable>
               ) : (
                 <Pressable
                   style={[styles.follow, following && styles.following]}
                   onPress={() => {
-                    const now = toggleFollow(item.id);
-                    if (now) track('user_followed', { target_user_id: item.id, target_handle: item.handle });
+                    void toggleFollow(item.id)
+                      .then((now) => {
+                        if (now) track('user_followed', { target_user_id: item.id, target_handle: item.handle });
+                      })
+                      .catch((error: unknown) => {
+                        Alert.alert('Could not follow', error instanceof Error ? error.message : 'Try again.');
+                      });
                   }}
                 >
                   <Text style={[styles.followText, following && styles.followingText]}>

@@ -1,6 +1,6 @@
 import type { Place, PlaceCategory } from './domain';
 import { TEL_AVIV, TEL_AVIV_SEARCH_REGION, distanceMeters } from './geo';
-import { categoryFromApplePoi, categoryLabel } from './labels';
+import { categoryFromApplePoi, categoryLabel, friendlyPlaceSubtitle } from './labels';
 
 export type PlaceSearchSource = 'seed' | 'apple-maps-server' | 'mk-local-search';
 
@@ -77,6 +77,7 @@ export async function searchPlaces(
     try {
       const nativeHits = (await options.nativeSearch(q, bias)).map((hit) => ({
         ...hit,
+        subtitle: friendlyPlaceSubtitle(hit.subtitle, hit.category),
         source: 'mk-local-search' as const,
         distanceMeters: distanceMeters(bias, hit),
       }));

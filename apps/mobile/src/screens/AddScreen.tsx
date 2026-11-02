@@ -38,7 +38,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { track } from '../analytics';
-import { pickPlacePhotos, uploadPlacePhoto, type PreparedPhoto } from '../photos';
+import { pickPlacePhotos, type PreparedPhoto } from '../photos';
 import { searchTelAvivPlaces } from '../search';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
@@ -85,6 +85,7 @@ export function AddScreen() {
       : [],
   );
   const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
   const searchRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -195,23 +196,15 @@ export function AddScreen() {
     if (!place || busy) return;
     if (custom && customName.trim().length < 2) return;
     setBusy(true);
+    setSaveError(null);
     try {
-      const uploaded: PreparedPhoto[] = [];
-      for (let index = 0; index < photos.length; index += 1) {
-        const photo = photos[index];
-        if (!photo) continue;
-        const remote = photo.uri.startsWith('http')
-          ? photo.uri
-          : await uploadPlacePhoto(photo.uri, `${me.id}/${place.id}/${index + 1}.jpg`);
-        uploaded.push({ ...photo, uri: remote });
-      }
-      const entry = save({
+      const entry = await save({
         place,
         rating,
         note,
         tags,
         visibility,
-        photos: uploaded,
+        photos,
       });
       track('place_saved', {
         place_id: entry.placeId,
@@ -219,11 +212,13 @@ export function AddScreen() {
         rating,
         visibility,
         time_to_save_ms: Date.now() - openedAt.current,
-        photo_count: uploaded.length,
+        photo_count: photos.length,
         has_note: note.trim().length > 0,
       });
       brandHaptic('addComplete');
       router.replace(`/place/${entry.placeId}?from=list`);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not save that place.');
     } finally {
       setBusy(false);
     }
@@ -457,6 +452,8 @@ export function AddScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: keyboardHeight > 0 ? 12 : Math.max(insets.bottom, 12) }]}>
+        {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
+        <View style={styles.footerRow}>
         <Pressable style={styles.visibility} onPress={() => setShowVisibility((value) => !value)}>
           <Ionicons
             name={visibility === 'private' ? 'lock-closed-outline' : visibility === 'friends' ? 'people-outline' : 'globe-outline'}
@@ -469,6 +466,7 @@ export function AddScreen() {
           <Ionicons name="heart" size={16} color={colors.white} />
           <Text style={styles.saveText}>{busy ? 'Saving' : 'Save'}</Text>
         </Pressable>
+        </View>
       </View>
       {showVisibility ? (
         <View style={[styles.visibilityMenu, { bottom: (keyboardHeight > 0 ? 12 : Math.max(insets.bottom, 12)) + 64 }]}>
@@ -657,12 +655,13 @@ const styles = StyleSheet.create({
   },
   addPhotoText: { color: colors.coral, fontWeight: '800', fontSize: 12 },
   footer: {
-    flexDirection: 'row',
-    gap: 10,
     paddingHorizontal: 16,
     paddingTop: 10,
     backgroundColor: colors.white,
+    gap: 8,
   },
+  footerRow: { flexDirection: 'row', gap: 10 },
+  saveError: { color: colors.tomato, fontWeight: '700' },
   visibility: {
     flexDirection: 'row',
     alignItems: 'center',

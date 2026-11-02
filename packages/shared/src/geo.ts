@@ -82,3 +82,62 @@ function clamp(value: number, min: number, max: number): number {
 export function isInTelAvivRegion(point: { lat: number; lng: number }): boolean {
   return distanceMeters(point, TEL_AVIV) < 40_000;
 }
+
+/**
+ * PostgREST returns a geography column as hex EWKB. Accept that, WKT
+ * (`POINT(lng lat)`), and GeoJSON so a place is never dropped for its coordinate format.
+ */
+export function parseGeography(location: unknown): { lat: number; lng: number } | null {
+  if (location == null) return null;
+  if (typeof location === 'object') {
+    const obj = location as {
+      coordinates?: unknown;
+      lat?: unknown;
+      lng?: unknown;
+    };
+    if (Array.isArray(obj.coordinates) && obj.coordinates.length >= 2) {
+      const lng = Number(obj.coordinates[0]);
+      const lat = Number(obj.coordinates[1]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    }
+    if (obj.lat != null && obj.lng != null) {
+      const lat = Number(obj.lat);
+      const lng = Number(obj.lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    }
+    return null;
+  }
+  if (typeof location !== 'string') return null;
+  const text = location.trim();
+  const wkt = text.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+  if (wkt) {
+    const lng = Number(wkt[1]);
+    const lat = Number(wkt[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+  const hex = text.replace(/^\\x/i, '').replace(/^0x/i, '');
+  if (/^[0-9a-fA-F]+$/.test(hex) && hex.length >= 42 && hex.length % 2 === 0) {
+    return parseEwkbPoint(hex);
+  }
+  return null;
+}
+
+function parseEwkbPoint(hex: string): { lat: number; lng: number } | null {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  if (bytes.length < 21 || (bytes[0] !== 0 && bytes[0] !== 1)) return null;
+  const little = bytes[0] === 1;
+  const view = new DataView(bytes.buffer);
+  const type = view.getUint32(1, little);
+  const base = type & 0xff;
+  if (base !== 1) return null;
+  let offset = 5;
+  if ((type & 0x20000000) !== 0) offset += 4;
+  if (bytes.length < offset + 16) return null;
+  const lng = view.getFloat64(offset, little);
+  const lat = view.getFloat64(offset + 8, little);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}

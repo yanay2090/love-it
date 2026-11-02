@@ -70,6 +70,13 @@ export function lovedByLine(count: number, profiles: Pick<UserProfile, 'displayN
   return `Loved by ${count} friend${count === 1 ? '' : 's'}`;
 }
 
+/** MKLocalSearch puts `MKPOICategoryCafe` in the subtitle. Show a person-facing label instead. */
+export function friendlyPlaceSubtitle(subtitle: string | null | undefined, category: PlaceCategory): string {
+  const raw = (subtitle ?? '').trim();
+  if (!raw || /MKPOICategory/i.test(raw)) return categoryLabel(category);
+  return raw;
+}
+
 export function categoryFromApplePoi(poi: string | undefined): PlaceCategory {
   const value = (poi ?? '').toLowerCase();
   if (value.includes('bakery') || value.includes('pastry')) return 'bakery';

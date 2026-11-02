@@ -4,9 +4,10 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState, Platform } from 'react-native';
+import { track } from '../analytics';
 import { getSupabase } from './client';
 import { identityFromUser, isPlaceholderName } from './identity';
-import { migrateLocalDiary } from './migrateLocal';
+import { clearLocalDiary } from './migrateLocal';
 
 export interface AccountProfile {
   id: string;
@@ -153,7 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setProfile((current) => (current && current.id !== session.user.id ? null : current));
     void refreshProfile();
-    void migrateLocalDiary(supabase, session.user.id).catch(() => undefined);
   }, [refreshProfile, session?.user.id, supabase]);
 
   const needsHandle = Boolean(session && profile && session.user.user_metadata?.handle_chosen !== true);
@@ -243,6 +243,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const { error: metaError } = await supabase.auth.updateUser({ data: { handle_chosen: true, handle } });
       if (metaError) return metaError.message;
+      const provider = session.user.app_metadata?.provider;
+      track('signup_completed', { method: provider === 'apple' ? 'apple' : 'google' });
       await refreshProfile();
       return null;
     },
@@ -251,6 +253,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
+    await clearLocalDiary();
+    await endGoogleSession(false);
     await supabase.auth.signOut();
     setProfile(null);
     setProfileError(null);
@@ -258,9 +262,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteAccount = useCallback(async () => {
     if (!supabase || !session) return 'Sign in first.';
+    try {
+      await deletePhotoFolder(supabase, session.user.id);
+    } catch {
+      // delete_own_account also removes the storage folder once 0005 is applied.
+    }
     const { error } = await supabase.rpc('delete_own_account');
     if (error) return error.message;
-    await supabase.auth.signOut();
+    await clearLocalDiary();
+    await endGoogleSession(true);
+    await supabase.auth.signOut().catch(() => undefined);
     setProfile(null);
     return null;
   }, [session, supabase]);
@@ -298,6 +309,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+async function endGoogleSession(revoke: boolean): Promise<void> {
+  if (configureGoogle()) return;
+  try {
+    if (revoke) await GoogleSignin.revokeAccess();
+  } catch {
+    // This phone had no Google grant to revoke.
+  }
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    // Already signed out of Google.
+  }
+}
+
+async function deletePhotoFolder(supabase: NonNullable<ReturnType<typeof getSupabase>>, userId: string): Promise<void> {
+  const { data: folders } = await supabase.storage.from('place-photos').list(userId, { limit: 100 });
+  for (const folder of folders ?? []) {
+    if (!folder.name) continue;
+    const prefix = `${userId}/${folder.name}`;
+    const { data: files } = await supabase.storage.from('place-photos').list(prefix, { limit: 20 });
+    const paths = (files ?? []).flatMap((file) => (file.name ? [`${prefix}/${file.name}`] : []));
+    if (paths.length > 0) await supabase.storage.from('place-photos').remove(paths);
+  }
 }
 
 export function useAuth(): AuthContextValue {

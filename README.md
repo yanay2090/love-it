@@ -13,7 +13,7 @@ This repo is the starter: an Expo iPhone app, a Next.js page for public links, s
 | `packages/shared` | Domain types, Tel Aviv seed data, place search, and the typed PostHog events. |
 | `supabase/migrations/0001_love_it_init.sql` | Postgres + PostGIS, RLS, reports, and blocks. |
 
-You are Yael (`@yael.loves`) until real auth is wired. Tom (`@tom.sips`) is the page with Follow, a list of five places, and photo counts. Lev Florentin is the place with the friend cluster, the 4-photo hero, and 12 photos from friends.
+Signed out, the app browses the Tel Aviv seed read-only: you see Yael (`@yael.loves`), Tom (`@tom.sips`) has five places, and Lev Florentin is the place with the friend cluster. Signed in, My page, saves, hearts, follows, blocks, and reports use that Supabase account. A new account does not inherit Yael’s saves.
 
 ## Prerequisites
 
@@ -64,13 +64,13 @@ In the Simulator, set the location to Tel Aviv if you want the recenter button t
 
 Click through:
 
-1. **Explore** opens on the Friends chip (12 places). Tap the Lev Florentin cluster, then the card, for the place screen.
-2. **My page** is Yael’s diary. There is no stories row. **Find friends** searches people. The map/list toggle and category chips filter her saves.
-3. Open **@tom.sips** from Find friends. Follow, switch Map/List, and tap a heart to quick-save onto your page. Tzimtzum starts filled because Yael already loves it.
+1. **Explore** while signed out opens on the Friends chip (12 places). Tap the Lev Florentin cluster, then the card, for the place screen.
+2. **My page** while signed out is Yael’s diary, and it is read-only. **Find friends** searches people. The map/list toggle and category chips filter her saves.
+3. Open **@tom.sips** from Find friends. Follow asks you to sign in. After sign-in the same heart writes to your account, not Yael’s.
 4. The **+** button on every tab opens **Love a place**. Search `lev flo`, rate it (1–5 reads Okay / Good / Great / Loved it), add up to 10 photos, a note, and Public / Friends / Private. Save is meant to take a few seconds.
 5. The place screen swipes through photos (`1/N`), shows **Photos from friends**, and the notes under them.
 
-**Reset demo data** is in the ··· menu on My page. **Import from Google Maps** in that same menu records `gmaps_import_started` and `gmaps_import_completed` and drops a few places you don’t have yet. The Takeout parser is the next backend step; the event names are already the day-one ones.
+The ··· menu on My page is Sign in, Sign out, and Delete account. Reset demo data and the sample Google Maps import are not in the app. Takeout import is not wired yet.
 
 Deep links use the `loveit` scheme: `loveit://u/yael.loves` and `loveit://place/place_lev_florentin`.
 
@@ -218,7 +218,7 @@ Ten day-one events, typed in `packages/shared/src/analytics.ts`:
 | Event | When |
 | --- | --- |
 | `app_opened` | The diary finishes loading |
-| `signup_completed` | The first demo session on this install |
+| `signup_completed` | A real Apple or Google account finishes choosing a handle |
 | `gmaps_import_started` | Import from Google Maps |
 | `gmaps_import_completed` | Import finished, with `imported_count` |
 | `place_saved` | Save or quick-save. Includes `time_to_save_ms`, `photo_count`, `has_note` |
@@ -237,7 +237,7 @@ See `.env.example`. All of it is optional for the starter.
 | Variable | App | Use |
 | --- | --- | --- |
 | `EXPO_PUBLIC_POSTHOG_KEY` | mobile | PostHog |
-| `EXPO_PUBLIC_WEB_URL` | mobile | Link copied by Share. Defaults to `http://localhost:3000` |
+| `EXPO_PUBLIC_WEB_URL` | mobile | Link copied by Share. Defaults to `https://loveitapp.com`. A localhost value is ignored. |
 | `EXPO_PUBLIC_APPLE_MAPS_TOKEN` | mobile | Apple Maps Server API search |
 | `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | mobile | Photo upload. Key format `sb_publishable_...`. Never an `sb_secret_` key. |
 | `NEXT_PUBLIC_POSTHOG_KEY` | web | PostHog |

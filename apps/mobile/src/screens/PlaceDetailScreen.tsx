@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { buildPlaceView, placeDetailMeta, priceLabel, ratingLabel } from '@love-it/shared';
+import { buildPlaceView, placeDetailMeta, placeUrl, priceLabel, ratingLabel } from '@love-it/shared';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackTabs } from '../components/AppTabBar';
 import { Gallery } from '../components/Gallery';
@@ -49,13 +49,19 @@ export function PlaceDetailScreen() {
   const { place } = view;
   const saved = Boolean(view.viewerEntry);
 
-  function onLove() {
+  async function onLove() {
     if (!requireAccount()) return;
     if (saved) {
       router.push(`/add?placeId=${place.id}`);
       return;
     }
-    const result = quickSave(place.id);
+    let result: Awaited<ReturnType<typeof quickSave>>;
+    try {
+      result = await quickSave(place.id);
+    } catch (error) {
+      Alert.alert('Could not save', error instanceof Error ? error.message : 'Try again.');
+      return;
+    }
     if (result.saved && result.entry) {
       track('place_saved', {
         place_id: place.id,
@@ -70,7 +76,7 @@ export function PlaceDetailScreen() {
   }
 
   async function sharePlace() {
-    const url = `${(process.env.EXPO_PUBLIC_WEB_URL || 'http://localhost:3000').replace(/\/$/, '')}/places/${place.id}`;
+    const url = placeUrl(place, process.env.EXPO_PUBLIC_WEB_URL);
     await Share.share({ message: `${place.name} on Love it — ${url}`, url });
   }
 

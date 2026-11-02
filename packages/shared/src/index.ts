@@ -9,6 +9,8 @@ export * from './seed';
 export * from './queries';
 export * from './mutate';
 export * from './search';
+export * from './links';
+export * from './localSaves';
 
 import type { Place, PlaceCategory } from './domain';
 import type { PlaceSearchHit } from './search';

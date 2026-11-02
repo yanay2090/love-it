@@ -1,13 +1,13 @@
-import { MAX_PHOTOS_PER_ENTRY, supabasePublishableKey, type SavePhotoInput } from '@love-it/shared';
+import { MAX_PHOTOS_PER_ENTRY, type SavePhotoInput } from '@love-it/shared';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { getSupabase } from './auth/client';
 
 export interface PreparedPhoto extends SavePhotoInput {}
 
 /**
  * Resize to 1600px wide and compress to JPEG before a save.
- * Ready for the `place-photos` Supabase bucket; without keys the local file
- * URI is what the diary renders.
+ * The diary renders the returned URI until upload replaces it with a public URL.
  */
 export async function preparePlacePhoto(uri: string): Promise<PreparedPhoto> {
   try {
@@ -40,24 +40,25 @@ export async function pickPlacePhotos(already: number): Promise<PreparedPhoto[]>
   return prepared;
 }
 
+/**
+ * Uploads with the signed-in session. `objectPath` must start with the user's id
+ * (`${uid}/${entryId}/${n}.jpg`) so the storage policy accepts it.
+ * Throws on failure — callers show the message instead of keeping a local file URI.
+ */
 export async function uploadPlacePhoto(localUri: string, objectPath: string): Promise<string> {
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  // sb_publishable_... only. sb_secret_ keys must never ship in client code.
-  const supabaseKey = supabasePublishableKey(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-  if (!supabaseUrl || !supabaseKey) return localUri;
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
-    const response = await fetch(localUri);
-    const body = await response.blob();
-    const { error } = await supabase.storage.from('place-photos').upload(objectPath, body, {
-      contentType: 'image/jpeg',
-      upsert: true,
-    });
-    if (error) return localUri;
-    const { data } = supabase.storage.from('place-photos').getPublicUrl(objectPath);
-    return data.publicUrl || localUri;
-  } catch {
-    return localUri;
-  }
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Photo upload needs the Supabase publishable key.');
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) throw new Error('Sign in to add photos.');
+  const response = await fetch(localUri);
+  if (!response.ok) throw new Error('Could not read that photo on this phone.');
+  const body = await response.arrayBuffer();
+  const { error } = await supabase.storage.from('place-photos').upload(objectPath, body, {
+    contentType: 'image/jpeg',
+    upsert: true,
+  });
+  if (error) throw new Error(error.message || 'Could not upload that photo.');
+  const { data } = supabase.storage.from('place-photos').getPublicUrl(objectPath);
+  if (!data.publicUrl) throw new Error('Could not upload that photo.');
+  return data.publicUrl;
 }

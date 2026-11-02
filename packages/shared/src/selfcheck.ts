@@ -4,6 +4,10 @@ import {
   canViewEntry,
   cloneSeed,
   filterExplorePlaces,
+  friendlyPlaceSubtitle,
+  isOwnLocalSave,
+  parseGeography,
+  publicSiteOrigin,
   friendLovedPlaces,
   importPlaces,
   photosForEntry,
@@ -125,6 +129,53 @@ const native = await searchPlaces('wine', seedData.places, {
 });
 assert(native[0]?.source === 'mk-local-search', 'MKLocalSearch is preferred when the native bridge is present');
 
+const rawCategory = await searchPlaces('cafe', [], {
+  nativeSearch: async () => [
+    {
+      key: 'mk-cafe',
+      applePlaceId: 'mk-cafe-1',
+      isCustomPin: false,
+      name: 'Cafe X',
+      category: 'cafe',
+      subtitle: 'MKPOICategoryCafe',
+      neighborhood: 'Florentin',
+      city: 'Tel Aviv',
+      address: '',
+      lat: 32.06,
+      lng: 34.77,
+      priceLevel: 2,
+      distanceMeters: 0,
+      source: 'mk-local-search',
+    },
+  ],
+});
+assert(rawCategory[0]?.subtitle === 'Cafe', `MKPOI subtitles become labels, got ${rawCategory[0]?.subtitle}`);
+assert(friendlyPlaceSubtitle('MKPOICategoryRestaurant', 'restaurant') === 'Restaurant', 'category labels stay friendly');
+
+const ewkb = sampleEwkb(34.7818, 32.0853);
+const point = parseGeography(ewkb);
+assert(point && Math.abs(point.lng - 34.7818) < 1e-6 && Math.abs(point.lat - 32.0853) < 1e-6, 'EWKB geography becomes lat/lng');
+assert(parseGeography('SRID=4326;POINT(34.78 32.08)')?.lat === 32.08, 'WKT points still parse');
+assert(publicSiteOrigin('http://localhost:3000') === 'https://loveitapp.com', 'share links never use localhost');
+assert(publicSiteOrigin(undefined) === 'https://loveitapp.com', 'share links default to loveitapp.com');
+
+const seedEntry = seedData.entries.find((entry) => entry.userId === yael);
+const seedPlace = seedData.places.find((place) => place.id === seedEntry?.placeId);
+assert(seedEntry && !isOwnLocalSave(seedEntry, seedPlace, seedData), 'Yael’s seed saves are not copied onto a new account');
+const ownPin = {
+  ...seedData.places[0]!,
+  id: 'place_my_corner',
+  name: 'My corner',
+  lat: 32.11,
+  lng: 34.9,
+  applePlaceId: null,
+  isCustomPin: true,
+};
+assert(
+  isOwnLocalSave({ ...seedEntry!, id: 'entry_my_corner', placeId: ownPin.id }, ownPin, seedData),
+  'a place created on this phone can be migrated',
+);
+
 const coffee = filterExplorePlaces(seedData, yael, 'cafe', '');
 assert(coffee.every((place) => place.category === 'cafe'), 'Coffee chip is cafes only');
 assert(coffee.length > 0, 'Coffee chip has places');
@@ -192,3 +243,14 @@ assert(
 }
 
 void main();
+
+function sampleEwkb(lng: number, lat: number): string {
+  const bytes = new Uint8Array(25);
+  const view = new DataView(bytes.buffer);
+  bytes[0] = 1;
+  view.setUint32(1, 0x20000001, true);
+  view.setUint32(5, 4326, true);
+  view.setFloat64(9, lng, true);
+  view.setFloat64(17, lat, true);
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}

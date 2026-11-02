@@ -14,7 +14,7 @@ import {
 } from '@love-it/shared';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -94,9 +94,15 @@ export function ExploreScreen() {
     router.push(`/place/${placeId}?from=${source}`);
   }
 
-  function onQuick(placeId: string, category: PlaceCategory) {
+  async function onQuick(placeId: string, category: PlaceCategory) {
     if (!requireAccount()) return;
-    const result = quickSave(placeId);
+    let result: Awaited<ReturnType<typeof quickSave>>;
+    try {
+      result = await quickSave(placeId);
+    } catch (error) {
+      Alert.alert('Could not save', error instanceof Error ? error.message : 'Try again.');
+      return;
+    }
     if (result.saved && result.entry) {
       track('place_saved', {
         place_id: placeId,
@@ -175,7 +181,7 @@ export function ExploreScreen() {
         <View style={styles.titleRow}>
           <Wordmark />
           <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="My page">
-            <Avatar initials={me.initials} color={me.avatarColor} size={40} />
+            <Avatar initials={me.initials} color={me.avatarColor} size={40} imageUri={me.avatarUrl} />
           </Pressable>
         </View>
         <SearchField value={query} onChangeText={setQuery} placeholder="Search places" />

@@ -68,7 +68,7 @@ Apply the account-deletion migration if it is not on the project yet:
 supabase db push
 ```
 
-That includes `supabase/migrations/0004_delete_own_account.sql`. The app calls `delete_own_account` from My page → ··· → Delete account.
+That includes `supabase/migrations/0004_delete_own_account.sql` and `0005_places_public_and_photo_storage.sql` (lat/lng view, photo storage policies, and storage cleanup on delete). The app calls `delete_own_account` from My page → ··· → Delete account.
 
 ## 4. What to try on the phone
 
@@ -78,4 +78,4 @@ That includes `supabase/migrations/0004_delete_own_account.sql`. The app calls `
 4. Kill and reopen the app. The session should still be there.
 5. My page → ··· → Sign out, and Delete account.
 
-Local saves already on the phone (the demo diary) are copied onto the account once, the first time that account signs in on this device.
+The one-time copy onto a new account includes only saves this phone created locally. Yael’s seed diary is not copied. Saves after sign-in write straight to Supabase.

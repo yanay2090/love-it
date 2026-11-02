@@ -3,17 +3,21 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../components/ui';
+import { useAuth } from '../auth/AuthProvider';
 import { useApp } from '../store';
 import { colors } from '../theme';
 
 export function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { session, profile } = useAuth();
   const { me, editProfile } = useApp();
-  const [displayName, setDisplayName] = useState(me.displayName);
-  const [handle, setHandle] = useState(me.handle);
-  const [bio, setBio] = useState(me.bio);
+  const source = session && profile ? profile : null;
+  const [displayName, setDisplayName] = useState(source?.displayName ?? me.displayName);
+  const [handle, setHandle] = useState(source?.handle ?? me.handle);
+  const [bio, setBio] = useState(source?.bio ?? me.bio);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
@@ -23,8 +27,9 @@ export function EditProfileScreen() {
           <Text style={styles.cancel}>Cancel</Text>
         </Pressable>
       </View>
+      {session ? null : <Text style={styles.error}>Sign in to edit your page.</Text>}
       <Text style={styles.label}>Name</Text>
-      <TextInput value={displayName} onChangeText={setDisplayName} style={styles.input} />
+      <TextInput value={displayName} onChangeText={setDisplayName} style={styles.input} editable={Boolean(session)} />
       <Text style={styles.label}>Handle</Text>
       <TextInput
         value={handle}
@@ -32,19 +37,35 @@ export function EditProfileScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         style={styles.input}
+        editable={Boolean(session)}
       />
       <Text style={styles.label}>Bio</Text>
-      <TextInput value={bio} onChangeText={setBio} style={[styles.input, styles.bio]} multiline />
+      <TextInput
+        value={bio}
+        onChangeText={setBio}
+        style={[styles.input, styles.bio]}
+        multiline
+        editable={Boolean(session)}
+      />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <PrimaryButton
-        label="Save"
+        label={busy ? 'Saving' : 'Save'}
         onPress={() => {
-          const message = editProfile({ displayName, handle, bio });
-          if (message) {
-            setError(message);
+          if (!session || busy) {
+            setError('Sign in to edit your page.');
             return;
           }
-          router.back();
+          setBusy(true);
+          setError(null);
+          void editProfile({ displayName, handle, bio })
+            .then((message) => {
+              if (message) {
+                setError(message);
+                return;
+              }
+              router.back();
+            })
+            .finally(() => setBusy(false));
         }}
       />
     </View>

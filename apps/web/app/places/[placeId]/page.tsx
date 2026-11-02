@@ -18,9 +18,10 @@ export async function generateMetadata({
   params: Promise<{ placeId: string }>;
 }): Promise<Metadata> {
   const { placeId } = await params;
-  if (isPlaceholderMode()) return { title: 'Love it', robots: { index: false, follow: false } };
   const loaded = await loadPublicPlace(placeId);
-  if (!loaded) return { title: 'Love it', robots: { index: false, follow: false } };
+  if (!loaded || (isPlaceholderMode() && loaded.source === 'seed')) {
+    return { title: 'Love it', robots: { index: false, follow: false } };
+  }
   return {
     title: `${loaded.view.place.name} · Love it`,
     description: placeDetailMeta(loaded.view.place),
@@ -29,9 +30,8 @@ export async function generateMetadata({
 
 export default async function PlacePage({ params }: { params: Promise<{ placeId: string }> }) {
   const { placeId } = await params;
-  if (isPlaceholderMode()) notFound();
   const loaded = await loadPublicPlace(placeId);
-  if (!loaded) notFound();
+  if (!loaded || (isPlaceholderMode() && loaded.source === 'seed')) notFound();
   const { view } = loaded;
   const { place } = view;
   const sharer = view.friendLovers[0]?.profile.handle ?? 'yael.loves';

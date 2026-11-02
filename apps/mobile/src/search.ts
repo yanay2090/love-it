@@ -1,5 +1,5 @@
 import type { NativePlaceSearch, Place, PlaceSearchHit } from '@love-it/shared';
-import { DEMO_ORIGIN, categoryFromApplePoi, searchPlaces } from '@love-it/shared';
+import { DEMO_ORIGIN, categoryFromApplePoi, friendlyPlaceSubtitle, searchPlaces } from '@love-it/shared';
 import { NativeModules } from 'react-native';
 import { getLoveItLocalSearch, type LocalSearchRow } from '../modules/love-it-local-search/src';
 
@@ -45,7 +45,10 @@ function hitFromNative(item: unknown): PlaceSearchHit[] {
       isCustomPin: false,
       name,
       category,
-      subtitle: typeof row.subtitle === 'string' && row.subtitle.length > 0 ? row.subtitle : category,
+      subtitle: friendlyPlaceSubtitle(
+        typeof row.subtitle === 'string' && row.subtitle.length > 0 ? row.subtitle : category,
+        category,
+      ),
       neighborhood: typeof row.neighborhood === 'string' && row.neighborhood.length > 0 ? row.neighborhood : 'Tel Aviv',
       city: 'Tel Aviv',
       address: typeof row.address === 'string' ? row.address : '',

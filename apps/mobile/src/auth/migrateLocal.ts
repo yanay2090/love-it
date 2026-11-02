@@ -1,9 +1,12 @@
-import { CURRENT_USER_ID, placeSourceForDatabase, type LoveItData, type Place } from '@love-it/shared';
+import { cloneSeed, isOwnLocalSave, type LoveItData, type Place } from '@love-it/shared';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { saveRemoteEntry } from '../remoteDiary';
 
 const DIARY_KEY = 'loveit.demo.v1';
-const MIGRATED_KEY = 'loveit.account-migrated.v1';
+/** v2 skips the seed diary. v1 had already copied Yael's saves, so it must not count. */
+const MIGRATED_KEY = 'loveit.account-migrated.v2';
+const LEGACY_MIGRATED_KEY = 'loveit.account-migrated.v1';
 
 interface Envelope {
   seedVersion: number;
@@ -11,8 +14,8 @@ interface Envelope {
 }
 
 /**
- * Copies this phone's own saves (the local diary user) onto the signed-in account.
- * Other people's seed rows stay on the device. Safe to run again.
+ * Copies saves this phone created locally onto the signed-in account.
+ * Yael's seed diary is never copied. The flag is set only after every row succeeds.
  */
 export async function migrateLocalDiary(supabase: SupabaseClient, userId: string): Promise<void> {
   const already = await AsyncStorage.getItem(MIGRATED_KEY);
@@ -24,85 +27,42 @@ export async function migrateLocalDiary(supabase: SupabaseClient, userId: string
     return;
   }
 
-  const parsed = JSON.parse(raw) as Envelope;
-  const data = parsed.data;
+  let data: LoveItData;
+  try {
+    const parsed = JSON.parse(raw) as Envelope;
+    data = parsed.data;
+  } catch {
+    return;
+  }
   if (!data?.entries || !data.places) return;
 
-  const mine = data.entries.filter((entry) => entry.userId === CURRENT_USER_ID);
-  for (const entry of mine) {
+  const seed = cloneSeed();
+  const mine = data.entries.flatMap((entry) => {
     const place = data.places.find((item) => item.id === entry.placeId);
-    if (!place) continue;
-    const placeId = await ensurePlace(supabase, userId, place);
-    if (!placeId) continue;
-    const { data: saved, error } = await supabase
-      .from('entries')
-      .upsert(
-        {
-          user_id: userId,
-          place_id: placeId,
-          rating: entry.rating,
-          note: entry.note.slice(0, 180),
-          tags: entry.tags.slice(0, 8),
-          visibility: entry.visibility,
-        },
-        { onConflict: 'user_id,place_id' },
-      )
-      .select('id')
-      .maybeSingle();
-    if (error || !saved?.id) continue;
+    if (!isOwnLocalSave(entry, place, seed) || !place) return [];
+    return [{ entry, place }];
+  });
+
+  for (const item of mine) {
     const photos = data.photos
-      .filter((photo) => photo.entryId === entry.id)
+      .filter((photo) => photo.entryId === item.entry.id)
       .sort((a, b) => a.position - b.position)
-      .slice(0, 10);
-    for (const photo of photos) {
-      if (!photo.uri.startsWith('http')) continue;
-      await supabase.from('place_photos').upsert(
-        {
-          entry_id: saved.id,
-          user_id: userId,
-          place_id: placeId,
-          storage_path: photo.uri,
-          position: photo.position,
-          width: photo.width ?? null,
-          height: photo.height ?? null,
-        },
-        { onConflict: 'entry_id,position' },
-      );
-    }
+      .filter((photo) => !photo.uri.includes('images.unsplash.com'))
+      .slice(0, 10)
+      .map((photo) => ({ uri: photo.uri, width: photo.width, height: photo.height }));
+    await saveRemoteEntry(supabase, userId, {
+      place: item.place as Place,
+      rating: item.entry.rating,
+      note: item.entry.note,
+      tags: item.entry.tags,
+      visibility: item.entry.visibility,
+      photos: photos.filter((photo) => photo.uri.startsWith('https://') || photo.uri.startsWith('http://')),
+    });
   }
 
   await AsyncStorage.setItem(MIGRATED_KEY, userId);
 }
 
-async function ensurePlace(supabase: SupabaseClient, userId: string, place: Place): Promise<string | null> {
-  const source = placeSourceForDatabase(place);
-  if (source.apple_place_id) {
-    const { data: existing } = await supabase
-      .from('places')
-      .select('id')
-      .eq('apple_place_id', source.apple_place_id)
-      .maybeSingle();
-    if (existing?.id) return existing.id as string;
-  }
-
-  const { data: inserted, error } = await supabase
-    .from('places')
-    .insert({
-      apple_place_id: source.apple_place_id,
-      is_custom_pin: source.is_custom_pin,
-      name: place.name,
-      category: place.category,
-      subtitle: place.subtitle,
-      neighborhood: place.neighborhood,
-      city: place.city || 'Tel Aviv',
-      address: place.address,
-      price_level: place.priceLevel,
-      local_name: place.localName ?? null,
-      location: `SRID=4326;POINT(${place.lng} ${place.lat})`,
-      created_by: userId,
-    })
-    .select('id')
-    .maybeSingle();
-  if (error || !inserted?.id) return null;
-  return inserted.id as string;
+export async function clearLocalDiary(): Promise<void> {
+  await AsyncStorage.multiRemove([DIARY_KEY, MIGRATED_KEY, LEGACY_MIGRATED_KEY]);
 }
