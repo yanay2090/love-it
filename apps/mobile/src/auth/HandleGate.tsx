@@ -10,7 +10,7 @@ export function HandleGate() {
 
   useEffect(() => {
     const top = segments[0];
-    if (!needsHandle || top === 'choose-handle' || top === 'sign-in' || top === 'verify-email') return;
+    if (!needsHandle || top === 'choose-handle' || top === 'sign-in') return;
     router.push('/choose-handle');
   }, [needsHandle, router, segments]);
 

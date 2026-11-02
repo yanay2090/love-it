@@ -55,7 +55,6 @@ export default function RootLayout() {
               <Stack.Screen name="u/[handle]" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="add" options={{ presentation: 'modal' }} />
               <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="verify-email" options={{ presentation: 'modal' }} />
               <Stack.Screen name="choose-handle" options={{ presentation: 'modal' }} />
               <Stack.Screen name="find-friends" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />

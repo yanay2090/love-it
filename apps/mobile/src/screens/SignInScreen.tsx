@@ -3,7 +3,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthProvider';
 import { colors, fonts } from '../theme';
@@ -13,12 +13,11 @@ const appleSignInEnabled = Constants.expoConfig?.extra?.appleSignIn === true;
 export function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { configured, signInWithApple, signInWithGoogle, sendEmailCode } = useAuth();
-  const [email, setEmail] = useState('');
+  const { configured, signInWithApple, signInWithGoogle } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function run(action: () => Promise<string | null>, after?: () => void) {
+  async function run(action: () => Promise<string | null>) {
     if (busy) return;
     setBusy(true);
     setMessage(null);
@@ -28,7 +27,7 @@ export function SignInScreen() {
       setMessage(error);
       return;
     }
-    after?.();
+    router.back();
   }
 
   return (
@@ -50,59 +49,13 @@ export function SignInScreen() {
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
           cornerRadius={26}
           style={styles.apple}
-          onPress={() => void run(signInWithApple, () => router.back())}
+          onPress={() => void run(signInWithApple)}
         />
       ) : null}
 
-      <Pressable
-        style={styles.google}
-        disabled={busy}
-        onPress={() => void run(signInWithGoogle, () => router.back())}
-      >
+      <Pressable style={styles.google} disabled={busy} onPress={() => void run(signInWithGoogle)}>
         <Ionicons name="logo-google" size={18} color={colors.ink} />
-        <Text style={styles.googleText}>Sign in with Google</Text>
-      </Pressable>
-
-      <Text style={styles.or}>or use your email</Text>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="email-address"
-        placeholder="you@gmail.com"
-        placeholderTextColor={colors.faint}
-        style={styles.input}
-        returnKeyType="send"
-        blurOnSubmit
-        onSubmitEditing={() => {
-          const next = email.trim().toLowerCase();
-          if (!next.includes('@')) {
-            setMessage('Enter a valid email address.');
-            return;
-          }
-          void run(
-            () => sendEmailCode(next),
-            () => router.push({ pathname: '/verify-email', params: { email: next } }),
-          );
-        }}
-      />
-      <Pressable
-        style={styles.emailButton}
-        disabled={busy}
-        onPress={() => {
-          const next = email.trim().toLowerCase();
-          if (!next.includes('@')) {
-            setMessage('Enter a valid email address.');
-            return;
-          }
-          void run(
-            () => sendEmailCode(next),
-            () => router.push({ pathname: '/verify-email', params: { email: next } }),
-          );
-        }}
-      >
-        <Text style={styles.emailButtonText}>{busy ? 'Sending…' : 'Email me a code'}</Text>
+        <Text style={styles.googleText}>{busy ? 'Signing in…' : 'Sign in with Google'}</Text>
       </Pressable>
       {message ? <Text style={styles.message}>{message}</Text> : null}
     </View>
@@ -128,19 +81,5 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   googleText: { fontFamily: fonts.sansMedium, fontSize: 16, color: colors.ink },
-  or: { textAlign: 'center', color: colors.stone, fontFamily: fonts.sans, marginTop: 8 },
-  input: {
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.linen,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    paddingHorizontal: 14,
-    fontFamily: fonts.sans,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  emailButton: { height: 48, alignItems: 'center', justifyContent: 'center' },
-  emailButtonText: { fontFamily: fonts.sansSemibold, fontSize: 16, color: colors.ink },
   message: { color: colors.stone, fontFamily: fonts.sans, lineHeight: 20 },
 });

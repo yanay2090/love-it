@@ -24,8 +24,6 @@ interface AuthContextValue {
   refreshProfile: () => Promise<void>;
   signInWithApple: () => Promise<string | null>;
   signInWithGoogle: () => Promise<string | null>;
-  sendEmailCode: (email: string) => Promise<string | null>;
-  verifyEmailCode: (email: string, token: string) => Promise<string | null>;
   claimHandle: (handle: string, displayName: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<string | null>;
@@ -163,25 +161,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase]);
 
-  const sendEmailCode = useCallback(async (email: string) => {
-    if (!supabase) return 'Supabase is not configured. Add the publishable key and restart.';
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: true },
-    });
-    return error ? error.message : null;
-  }, [supabase]);
-
-  const verifyEmailCode = useCallback(async (email: string, token: string) => {
-    if (!supabase) return 'Supabase is not configured. Add the publishable key and restart.';
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.trim(),
-      type: 'email',
-    });
-    return error ? error.message : null;
-  }, [supabase]);
-
   const claimHandle = useCallback(
     async (handle: string, displayName: string) => {
       if (!supabase || !session?.user.id) return 'Sign in first.';
@@ -229,8 +208,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshProfile,
       signInWithApple,
       signInWithGoogle,
-      sendEmailCode,
-      verifyEmailCode,
       claimHandle,
       signOut,
       deleteAccount,
@@ -242,13 +219,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       ready,
       refreshProfile,
-      sendEmailCode,
       session,
       signInWithApple,
       signInWithGoogle,
       signOut,
       supabase,
-      verifyEmailCode,
     ],
   );
 
