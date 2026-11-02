@@ -40,6 +40,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { track } from '../analytics';
 import { pickPlacePhotos, uploadPlacePhoto, type PreparedPhoto } from '../photos';
 import { searchTelAvivPlaces } from '../search';
+import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
 import { colors, shadow } from '../theme';
 import { Thumb } from '../components/ui';
@@ -56,6 +57,7 @@ export function AddScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { data, me, save } = useApp();
+  const requireAccount = useAccountGate();
   const placeId = one(useLocalSearchParams<{ placeId?: string }>().placeId);
   const seeded = placeId ? placeById(data, placeId) : undefined;
   const existing = placeId ? viewerEntryFor(data, me.id, placeId) : undefined;
@@ -179,6 +181,7 @@ export function AddScreen() {
   }
 
   async function onSave() {
+    if (!requireAccount()) return;
     const origin = custom ? await pinOrigin() : null;
     const place = custom
       ? customPinPlace({

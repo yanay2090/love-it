@@ -24,6 +24,7 @@ import { PlaceRow } from '../components/PlaceRow';
 import { Avatar, Chip, HeartButton, SearchField, Thumb, Wordmark } from '../components/ui';
 import { track } from '../analytics';
 import { brandHaptic, brandSpring, motionTokens } from '../motion';
+import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
 import { colors, fonts, shadow } from '../theme';
 
@@ -45,6 +46,7 @@ export function ExploreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { data, me, setLastTab, quickSave } = useApp();
+  const requireAccount = useAccountGate();
   const [query, setQuery] = useState('');
   const [chip, setChip] = useState<ExploreChip>('friends');
   const [more, setMore] = useState(false);
@@ -93,6 +95,7 @@ export function ExploreScreen() {
   }
 
   function onQuick(placeId: string, category: PlaceCategory) {
+    if (!requireAccount()) return;
     const result = quickSave(placeId);
     if (result.saved && result.entry) {
       track('place_saved', {

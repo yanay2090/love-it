@@ -10,13 +10,15 @@ import {
 } from '@love-it/shared';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
 import { Avatar, Chip, PrimaryButton, SecondaryButton } from '../components/ui';
 import { track } from '../analytics';
+import { useAccountGate } from '../auth/useAccountGate';
+import { useAuth } from '../auth/AuthProvider';
 import { useApp } from '../store';
 import { colors } from '../theme';
 
@@ -31,6 +33,8 @@ export function MyPageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { data, me, setLastTab, quickSave, resetDemo } = useApp();
+  const { session, signOut, deleteAccount } = useAuth();
+  const requireAccount = useAccountGate();
   const [mode, setMode] = useState<'map' | 'list'>('map');
   const [chip, setChip] = useState<ExploreChip>('all');
   const [publicOnly, setPublicOnly] = useState(false);
@@ -91,6 +95,11 @@ export function MyPageScreen() {
         <Ionicons name="search" size={14} color={colors.coral} />
         <Text style={styles.findText}>Find friends</Text>
       </Pressable>
+      {!session ? (
+        <Pressable style={styles.signIn} onPress={() => router.push('/sign-in')}>
+          <Text style={styles.signInText}>Sign in</Text>
+        </Pressable>
+      ) : null}
 
       <Text style={styles.name}>{me.displayName}</Text>
       <Text style={styles.bio}>{me.bio}</Text>
@@ -148,7 +157,10 @@ export function MyPageScreen() {
                     track('place_viewed', { place_id: place.id, source: 'profile' });
                     router.push(`/place/${place.id}?from=profile`);
                   }}
-                  onHeart={() => quickSave(place.id)}
+                  onHeart={() => {
+                    if (!requireAccount()) return;
+                    quickSave(place.id);
+                  }}
                 />
               );
             }}
@@ -178,6 +190,53 @@ export function MyPageScreen() {
             >
               <Text style={styles.sheetText}>Reset demo data</Text>
             </Pressable>
+            {session ? (
+              <>
+                <Pressable
+                  style={styles.sheetRow}
+                  onPress={() => {
+                    setMenu(false);
+                    void signOut();
+                  }}
+                >
+                  <Text style={styles.sheetText}>Sign out</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.sheetRow}
+                  onPress={() => {
+                    setMenu(false);
+                    Alert.alert(
+                      'Delete account',
+                      'This removes your profile, saves, and sign-in from Love it. It cannot be undone.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Delete account',
+                          style: 'destructive',
+                          onPress: () => {
+                            void deleteAccount().then((error) => {
+                              if (error) Alert.alert('Could not delete the account', error);
+                            });
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                >
+                  <Text style={styles.sheetText}>Delete account</Text>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable
+                style={styles.sheetRow}
+                onPress={() => {
+                  setMenu(false);
+                  router.push('/sign-in');
+                }}
+              >
+                <Text style={styles.sheetText}>Sign in</Text>
+              </Pressable>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -217,6 +276,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   findText: { color: colors.coral, fontWeight: '800' },
+  signIn: {
+    alignSelf: 'center',
+    marginTop: 10,
+    backgroundColor: colors.ink,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  signInText: { color: colors.paper, fontWeight: '800' },
   name: { fontSize: 26, fontWeight: '800', marginTop: 14, letterSpacing: -0.4 },
   bio: { color: colors.muted, marginTop: 4, fontSize: 15 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },

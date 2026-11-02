@@ -16,6 +16,8 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider } from '@/src/store';
+import { AuthProvider } from '@/src/auth/AuthProvider';
+import { HandleGate } from '@/src/auth/HandleGate';
 import { colors } from '@/src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -38,23 +40,29 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.cream }}>
       <SafeAreaProvider>
-        <AppProvider>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.cream },
-            }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="place/[id]" options={{ animation: 'slide_from_right' }} />
-            <Stack.Screen name="u/[handle]" options={{ animation: 'slide_from_right' }} />
-            <Stack.Screen name="add" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="find-friends" options={{ animation: 'slide_from_right' }} />
-            <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="import" options={{ presentation: 'modal' }} />
-          </Stack>
-        </AppProvider>
+        <AuthProvider>
+          <AppProvider>
+            <HandleGate />
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.cream },
+              }}
+            >
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="place/[id]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="u/[handle]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="add" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="verify-email" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="choose-handle" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="find-friends" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="import" options={{ presentation: 'modal' }} />
+            </Stack>
+          </AppProvider>
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

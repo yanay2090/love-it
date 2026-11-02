@@ -58,6 +58,8 @@ That compiles a development build and installs it. Use it when the App Store Exp
 
 The iOS bundle identifier is `com.yanaybenyosef.loveit` (`ios.bundleIdentifier` in `apps/mobile/app.json`). The URL scheme stays `loveit`.
 
+Sign-in (Apple, Google, and email code) is described in [docs/auth-setup.md](docs/auth-setup.md). It needs a native rebuild, and Sign in with Apple cannot be signed with a free Personal Team.
+
 In the Simulator, set the location to Tel Aviv if you want the recenter button to land in the city: **Features → Location → Custom Location…** `32.0853`, `34.7818`. Search stays biased to Tel Aviv either way.
 
 Click through:

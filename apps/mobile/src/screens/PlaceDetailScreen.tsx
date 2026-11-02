@@ -9,6 +9,7 @@ import { StackTabs } from '../components/AppTabBar';
 import { Gallery } from '../components/Gallery';
 import { Avatar } from '../components/ui';
 import { track } from '../analytics';
+import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
 import { colors, fonts, shadow } from '../theme';
 
@@ -23,6 +24,7 @@ export function PlaceDetailScreen() {
   const id = one(params.id) ?? '';
   const from = one(params.from);
   const { data, me, quickSave } = useApp();
+  const requireAccount = useAccountGate();
   const view = buildPlaceView(data, id, me.id);
   const [grid, setGrid] = useState(false);
   const openedAt = useRef(Date.now());
@@ -48,6 +50,7 @@ export function PlaceDetailScreen() {
   const saved = Boolean(view.viewerEntry);
 
   function onLove() {
+    if (!requireAccount()) return;
     if (saved) {
       router.push(`/add?placeId=${place.id}`);
       return;

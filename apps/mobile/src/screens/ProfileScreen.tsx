@@ -21,6 +21,7 @@ import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
 import { Avatar, PrimaryButton, SecondaryButton } from '../components/ui';
 import { track } from '../analytics';
+import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
 import { colors } from '../theme';
 import { REPORT_REASONS } from '@love-it/shared';
@@ -35,6 +36,7 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const handle = one(useLocalSearchParams<{ handle: string }>().handle);
   const { data, me, toggleFollow, quickSave, block, report } = useApp();
+  const requireAccount = useAccountGate();
   const profile = profileByHandle(data, handle);
   const [mode, setMode] = useState<'map' | 'list'>('list');
   const [menu, setMenu] = useState(false);
@@ -69,6 +71,7 @@ export function ProfileScreen() {
   }
 
   function onQuick(placeId: string, category: PlaceCategory) {
+    if (!requireAccount()) return;
     const result = quickSave(placeId);
     if (result.saved && result.entry) {
       track('place_saved', {
