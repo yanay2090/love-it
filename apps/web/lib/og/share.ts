@@ -11,10 +11,10 @@ export function defaultOgImage(): string {
 
 const imageSize = { width: 1200, height: 630, type: 'image/png' as const };
 
-export function profileShareCopy(name: string, loved: number, city = 'Tel Aviv'): { title: string; description: string } {
+export function profileShareCopy(name: string, loved: number): { title: string; description: string } {
   const first = name.trim().split(/\s+/)[0] || name;
   return {
-    title: `${first}'s favorite places in ${city}`,
+    title: `${first}'s favorite places`,
     description: `${loved} ${loved === 1 ? 'place' : 'places'} on Love it`,
   };
 }

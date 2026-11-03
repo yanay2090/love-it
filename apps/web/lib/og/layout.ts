@@ -224,13 +224,11 @@ export function profileCard(input: {
   name: string;
   first: string;
   count: number;
-  city?: string;
   avatarSrc?: string | null;
   avatarBg?: string;
   sample?: boolean;
 }): Node {
   ensureFonts();
-  const city = input.city || 'Tel Aviv';
   const hebrew = hasHebrew(input.name);
   const card = element(
     'div',
@@ -260,7 +258,6 @@ export function profileCard(input: {
         italicFile(input.name),
         [46],
       ),
-      element('div', {}, hebrew ? `ב${city}` : `in ${city}`),
     ),
     element(
       'div',

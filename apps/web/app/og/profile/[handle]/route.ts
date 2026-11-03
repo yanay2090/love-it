@@ -25,7 +25,6 @@ export async function GET(_request: Request, context: { params: Promise<{ handle
       name,
       first: firstName(name),
       count: page.loved,
-      city: page.profile.city || 'Tel Aviv',
       avatarSrc: avatar?.uri ?? null,
       avatarBg: initialsBackground(page.profile.handle),
     }),

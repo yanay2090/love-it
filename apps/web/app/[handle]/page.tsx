@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   }
   const page = await loadPublicProfile(handle);
   if (!page) return fallbackShareMetadata({ index: false, follow: false });
-  const copy = profileShareCopy(page.profile.displayName, page.loved, page.profile.city);
+  const copy = profileShareCopy(page.profile.displayName, page.loved);
   const origin = siteOrigin();
   return shareMetadata({
     title: copy.title,
