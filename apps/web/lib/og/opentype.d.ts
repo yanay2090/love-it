@@ -1,4 +1,4 @@
-declare module 'upng-js' {
+declare module 'upng-js/UPNG.js' {
   const UPNG: {
     encode: (buffers: ArrayBuffer[], width: number, height: number, colorCount: number) => ArrayBuffer;
   };

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 import { PNG } from 'pngjs';
-import UPNG from 'upng-js';
+import UPNG from 'upng-js/UPNG.js';
 import { fit, hasRTL, rememberFont, visualTokens } from './bidi';
 
 const ink = '#1C1917';
