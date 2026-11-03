@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
 import { isPlaceholderMode } from '../lib/launch';
+import { fallbackShareMetadata } from '../lib/og/share';
 
-export const metadata: Metadata = {
-  title: 'Page not found · Love it',
-  robots: { index: false, follow: false },
-};
+export const metadata: Metadata = fallbackShareMetadata({ index: false, follow: false });
 
 export default function NotFound() {
   const placeholder = isPlaceholderMode();

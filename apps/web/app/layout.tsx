@@ -1,6 +1,6 @@
+import { publicSiteOrigin } from '@love-it/shared';
 import type { Metadata } from 'next';
 import { Instrument_Serif, Inter_Tight } from 'next/font/google';
-import { isPlaceholderMode } from '../lib/launch';
 import './globals.css';
 
 const serif = Instrument_Serif({
@@ -19,9 +19,7 @@ const sans = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || (isPlaceholderMode() ? 'https://loveitapp.com' : 'http://localhost:3000'),
-  ),
+  metadataBase: new URL(publicSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL)),
   title: 'Love it',
   description: 'A map of the cafes and restaurants you actually love. Tel Aviv first.',
 };

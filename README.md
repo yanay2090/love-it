@@ -147,6 +147,12 @@ Home is 200 and indexable. `www` is a 308 to `https://loveitapp.com/`. `/yael.lo
 
 To click the coming-soon page on this machine before deploy: `NEXT_PUBLIC_LAUNCH_MODE=placeholder npm run dev:web`.
 
+### Share previews
+
+Profile and place links advertise an Open Graph image for WhatsApp, iMessage, and X. Home and unknown handles use `https://loveitapp.com/og-default.png`. A real page uses `/{handle}/opengraph-image` or `/places/{id}/opengraph-image` (1200×630 PNG). The card layout lives in `apps/web/lib/og/card.tsx` so it can be replaced when a final banner arrives.
+
+WhatsApp caches previews hard. After `npm run deploy`, test a fresh URL such as `https://loveitapp.com/yourhandle?v=2` (the query is enough to bust the cache) and paste the same URL into [opengraph.xyz](https://www.opengraph.xyz/). The image response should be `content-type: image/png` and under 300KB.
+
 ## Apply the Supabase migration
 
 The app does not need a database to run. When you are ready:

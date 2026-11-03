@@ -14,7 +14,7 @@ import {
 } from '@love-it/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackTabs, tabBarOffset } from '../components/AppTabBar';
 import { MapListToggle } from '../components/MapListToggle';
@@ -22,6 +22,7 @@ import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
 import { Avatar, PrimaryButton, SecondaryButton, rtlInput } from '../components/ui';
 import { track } from '../analytics';
+import { sharePublicUrl } from '../share';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
 import { colors } from '../theme';
@@ -105,7 +106,7 @@ export function ProfileScreen() {
   async function sharePage() {
     const url = profileUrl(profile!.handle, process.env.EXPO_PUBLIC_WEB_URL);
     track('profile_shared', { handle: profile!.handle, surface: 'other_page' });
-    await Share.share({ message: `${profile!.displayName}’s places on Love it — ${url}`, url });
+    await sharePublicUrl(url);
   }
 
   return (

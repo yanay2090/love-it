@@ -6,6 +6,7 @@ import { PinMap } from '../../components/PinMap';
 import { TrackPublicPage } from '../../components/TrackPublicPage';
 import { loadPublicProfile, seedHandles } from '../../lib/data';
 import { isPlaceholderMode } from '../../lib/launch';
+import { fallbackShareMetadata, profileShareCopy, shareMetadata, siteOrigin } from '../../lib/og/share';
 
 function hiddenSeedHandle(handle: string): boolean {
   if (!isPlaceholderMode()) return false;
@@ -22,14 +23,19 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   const { handle } = await params;
   // Static folders (app/places, app/privacy, app/support, …) are matched
   // before this dynamic segment. Reserved names that have no page 404 here.
-  if (hiddenSeedHandle(handle)) return { title: 'Love it', robots: { index: false, follow: false } };
-  if (!validateHandle(handle).ok) return { title: 'Love it', robots: { index: false, follow: false } };
+  if (hiddenSeedHandle(handle) || !validateHandle(handle).ok) {
+    return fallbackShareMetadata({ index: false, follow: false });
+  }
   const page = await loadPublicProfile(handle);
-  if (!page) return { title: 'Love it' };
-  return {
-    title: `${page.profile.displayName} (@${page.profile.handle}) · Love it`,
-    description: page.profile.bio || `Places ${page.profile.displayName} loves in Tel Aviv.`,
-  };
+  if (!page) return fallbackShareMetadata({ index: false, follow: false });
+  const copy = profileShareCopy(page.profile.displayName, page.loved);
+  const origin = siteOrigin();
+  return shareMetadata({
+    title: copy.title,
+    description: copy.description,
+    url: `${origin}/${page.profile.handle}`,
+    image: `${origin}/${page.profile.handle}/opengraph-image`,
+  });
 }
 
 export default async function ProfilePage({ params }: { params: Promise<{ handle: string }> }) {

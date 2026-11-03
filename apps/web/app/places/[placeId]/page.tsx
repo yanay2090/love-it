@@ -6,6 +6,7 @@ import { PhotoGallery } from '../../../components/PhotoGallery';
 import { TrackPublicPage } from '../../../components/TrackPublicPage';
 import { loadPublicPlace, seedPlaceIds } from '../../../lib/data';
 import { isPlaceholderMode } from '../../../lib/launch';
+import { fallbackShareMetadata, placeShareCopy, shareMetadata, siteOrigin } from '../../../lib/og/share';
 
 export function generateStaticParams() {
   if (isPlaceholderMode()) return [];
@@ -20,12 +21,19 @@ export async function generateMetadata({
   const { placeId } = await params;
   const loaded = await loadPublicPlace(placeId);
   if (!loaded || (isPlaceholderMode() && loaded.source === 'seed')) {
-    return { title: 'Love it', robots: { index: false, follow: false } };
+    return fallbackShareMetadata({ index: false, follow: false });
   }
-  return {
-    title: `${loaded.view.place.name} · Love it`,
-    description: placeDetailMeta(loaded.view.place),
-  };
+  const copy = placeShareCopy(
+    loaded.view.place,
+    loaded.view.lovers.map((lover) => lover.profile),
+  );
+  const origin = siteOrigin();
+  return shareMetadata({
+    title: copy.title,
+    description: copy.description,
+    url: `${origin}/places/${encodeURIComponent(placeId)}`,
+    image: `${origin}/places/${encodeURIComponent(placeId)}/opengraph-image`,
+  });
 }
 
 export default async function PlacePage({ params }: { params: Promise<{ placeId: string }> }) {

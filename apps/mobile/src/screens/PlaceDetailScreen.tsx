@@ -3,12 +3,13 @@ import { buildPlaceView, placeDetailMeta, placeUrl, priceLabel, ratingLabel } fr
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackTabs, tabBarOffset } from '../components/AppTabBar';
 import { Gallery } from '../components/Gallery';
 import { Avatar } from '../components/ui';
 import { track } from '../analytics';
+import { sharePublicUrl } from '../share';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
 import { colors, fonts, shadow } from '../theme';
@@ -77,7 +78,7 @@ export function PlaceDetailScreen() {
 
   async function sharePlace() {
     const url = placeUrl(place, process.env.EXPO_PUBLIC_WEB_URL);
-    await Share.share({ message: `${place.name} on Love it — ${url}`, url });
+    await sharePublicUrl(url);
   }
 
   return (

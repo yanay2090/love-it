@@ -2,19 +2,23 @@ import { seedData } from '@love-it/shared';
 import type { Metadata } from 'next';
 import { ComingSoon } from '../components/ComingSoon';
 import { isPlaceholderMode } from '../lib/launch';
+import { fallbackShareMetadata, shareMetadata, siteOrigin } from '../lib/og/share';
 
 export function generateMetadata(): Metadata {
+  const origin = siteOrigin();
   if (!isPlaceholderMode()) {
     return {
-      title: 'Love it',
-      description: 'A map of the cafes and restaurants you actually love. Tel Aviv first.',
+      ...fallbackShareMetadata(),
+      alternates: { canonical: origin },
     };
   }
-  return {
+  return shareMetadata({
     title: 'Love it — coming soon to iPhone in Tel Aviv',
     description: 'A map of the cafes and restaurants you actually love. Coming soon to iPhone in Tel Aviv.',
+    url: origin,
+    image: `${origin}/og-default.png`,
     robots: { index: true, follow: true },
-  };
+  });
 }
 
 const featured = ['yael.loves', 'tom.sips', 'maya.ofer'];

@@ -11,7 +11,7 @@ import {
 } from '@love-it/shared';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tabBarOffset } from '../components/AppTabBar';
 import { MapListToggle } from '../components/MapListToggle';
@@ -19,6 +19,7 @@ import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
 import { Avatar, Chip, PrimaryButton, SecondaryButton } from '../components/ui';
 import { track } from '../analytics';
+import { sharePublicUrl } from '../share';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useAuth } from '../auth/AuthProvider';
 import { useApp } from '../store';
@@ -77,7 +78,7 @@ export function MyPageScreen() {
     if (!handle) return;
     const url = profileUrl(handle, process.env.EXPO_PUBLIC_WEB_URL);
     track('profile_shared', { handle, surface: 'my_page' });
-    await Share.share({ message: `My favorite places in Tel Aviv — ${url}`, url });
+    await sharePublicUrl(url);
   }
 
   return (
