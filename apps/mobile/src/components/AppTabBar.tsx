@@ -20,6 +20,14 @@ export function StackTabs() {
   );
 }
 
+const TAB_PAD_TOP = 2;
+const TAB_ROW = 48;
+
+/** Height of the bar including the home-indicator inset, so maps can run underneath it. */
+export function tabBarOffset(bottomInset: number): number {
+  return TAB_PAD_TOP + TAB_ROW + (bottomInset > 0 ? bottomInset : 6);
+}
+
 export function AppTabBar({
   active,
   onExplore,
@@ -36,11 +44,13 @@ export function AppTabBar({
   const plus = useSharedValue(1);
   const plusStyle = useAnimatedStyle(() => ({ transform: [{ scale: plus.value }] }));
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      <View style={styles.plusRow}>
+    <View style={[styles.wrap, { paddingBottom: insets.bottom > 0 ? insets.bottom : 6 }]}>
+      <View style={styles.row}>
+        <Tab icon="compass" label="Explore" active={active === 'explore'} onPress={onExplore} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Add a place"
+          hitSlop={6}
           onPressIn={() => {
             plus.value = brandSpring('snappy', 0.92, reduced);
           }}
@@ -53,13 +63,9 @@ export function AppTabBar({
           }}
         >
           <Animated.View style={[styles.plus, plusStyle]}>
-            <Ionicons name="add" size={34} color={colors.paper} />
+            <Ionicons name="add" size={26} color={colors.paper} />
           </Animated.View>
         </Pressable>
-      </View>
-      <View style={styles.row}>
-        <Tab icon="compass" label="Explore" active={active === 'explore'} onPress={onExplore} />
-        <View style={{ width: 76 }} />
         <Tab icon="person" label="My page" active={active === 'me'} onPress={onMe} />
       </View>
     </View>
@@ -87,6 +93,7 @@ function Tab({
         onPress();
       }}
       style={styles.tab}
+      hitSlop={4}
     >
       <Ionicons name={name} size={22} color={color} />
       <Text style={[styles.label, { color }]}>{label}</Text>
@@ -96,23 +103,31 @@ function Tab({
 
 const styles = StyleSheet.create({
   wrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
     backgroundColor: colors.white,
-    paddingTop: 8,
+    paddingTop: TAB_PAD_TOP,
   },
-  plusRow: { alignItems: 'center', height: 28 },
   plus: {
-    marginTop: -22,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    marginTop: -8,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.card,
-    shadowColor: colors.ink,
-    shadowOpacity: 0.2,
+    ...shadow.soft,
   },
-  row: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end' },
-  tab: { alignItems: 'center', gap: 2, minWidth: 72, paddingBottom: 2 },
+  row: {
+    height: TAB_ROW,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 12,
+  },
+  tab: { alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: 72, minHeight: 44, flex: 1 },
   label: { fontFamily: fonts.sansSemibold, fontSize: 11 },
 });

@@ -16,11 +16,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StackTabs } from '../components/AppTabBar';
+import { StackTabs, tabBarOffset } from '../components/AppTabBar';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
-import { Avatar, PrimaryButton, SecondaryButton } from '../components/ui';
+import { Avatar, PrimaryButton, SecondaryButton, rtlInput } from '../components/ui';
 import { track } from '../analytics';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
@@ -167,7 +167,7 @@ export function ProfileScreen() {
           <FlatList
             data={entries}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: tabBarOffset(insets.bottom) + 12 }}
             ListEmptyComponent={<Text style={styles.empty}>No places to show.</Text>}
             renderItem={({ item }) => {
               const place = placeById(data, item.placeId);
@@ -242,7 +242,7 @@ export function ProfileScreen() {
               onChangeText={setDetails}
               placeholder="Details, optional"
               placeholderTextColor={colors.faint}
-              style={styles.input}
+              style={[styles.input, rtlInput]}
             />
             <PrimaryButton
               label={thanks ? 'Sent' : 'Send report'}

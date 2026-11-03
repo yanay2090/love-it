@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StackTabs } from '../components/AppTabBar';
+import { StackTabs, tabBarOffset } from '../components/AppTabBar';
 import { Gallery } from '../components/Gallery';
 import { Avatar } from '../components/ui';
 import { track } from '../analytics';
@@ -82,7 +82,7 @@ export function PlaceDetailScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: tabBarOffset(insets.bottom) + 16 }}>
         <Gallery photos={view.heroPhotos} placeId={place.id} onDismiss={() => router.back()} />
         <View style={styles.body}>
           <Text style={styles.overline}>{placeDetailMeta(place).toUpperCase()}</Text>

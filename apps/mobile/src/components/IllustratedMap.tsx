@@ -7,13 +7,21 @@ export function IllustratedMap({
   pins,
   selectedId,
   onSelect,
+  onInteract,
 }: {
   pins: MapPin[];
   selectedId?: string;
   onSelect: (placeId: string) => void;
+  onInteract?: () => void;
 }) {
   return (
-    <View style={styles.map}>
+    <View
+      style={styles.map}
+      onStartShouldSetResponder={() => {
+        onInteract?.();
+        return false;
+      }}
+    >
       <View style={styles.water} />
       <View style={styles.park} />
       <View style={[styles.road, { top: '28%', left: '16%', width: '70%', transform: [{ rotate: '-8deg' }] }]} />
@@ -31,7 +39,10 @@ export function IllustratedMap({
         return (
           <Pressable
             key={pin.placeId}
-            onPress={() => onSelect(pin.placeId)}
+            onPress={() => {
+              onInteract?.();
+              onSelect(pin.placeId);
+            }}
             style={[styles.pin, { left: `${point.x}%`, top: `${point.y}%` }]}
           >
             <PinMarker pin={pin} selected={pin.placeId === selectedId} />

@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthProvider';
 import { identityFromUser, isPlaceholderName } from '../auth/identity';
+import { rtlInput } from '../components/ui';
 import { colors, fonts } from '../theme';
 
 export function ChooseHandleScreen() {
@@ -48,14 +49,20 @@ export function ChooseHandleScreen() {
       <Text style={styles.lede}>This is the public page people open from your bio. Letters, numbers, dots, underscores.</Text>
       {identity.avatarUrl ? <Image source={{ uri: identity.avatarUrl }} style={styles.photo} contentFit="cover" /> : null}
       <Text style={styles.label}>Name</Text>
-      <TextInput value={displayName} onChangeText={setDisplayName} style={styles.input} placeholder="Your name" placeholderTextColor={colors.faint} />
+      <TextInput
+        value={displayName}
+        onChangeText={setDisplayName}
+        style={[styles.input, rtlInput]}
+        placeholder="Your name"
+        placeholderTextColor={colors.faint}
+      />
       <Text style={styles.label}>Handle</Text>
       <TextInput
         value={handle}
         onChangeText={(value) => setHandle(value.toLowerCase().replace(/^@/, ''))}
         autoCapitalize="none"
         autoCorrect={false}
-        style={styles.input}
+        style={[styles.input, rtlInput]}
         placeholder="yael.loves"
         placeholderTextColor={colors.faint}
       />

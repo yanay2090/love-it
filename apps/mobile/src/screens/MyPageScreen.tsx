@@ -13,6 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { tabBarOffset } from '../components/AppTabBar';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
@@ -152,7 +153,7 @@ export function MyPageScreen() {
           <FlatList
             data={entries}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: tabBarOffset(insets.bottom) + 12 }}
             renderItem={({ item }) => {
               const place = placeById(data, item.placeId);
               if (!place) return null;

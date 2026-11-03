@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { forwardRef, type ComponentRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSequence } from 'react-native-reanimated';
 import { brandHaptic, brandSpring, brandTiming } from '../motion';
@@ -52,21 +53,26 @@ export function Wordmark({ size = 34 }: { size?: number }) {
   );
 }
 
-export function SearchField({
-  value,
-  onChangeText,
-  placeholder,
-  autoFocus = false,
-}: {
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  autoFocus?: boolean;
-}) {
+/** Hebrew-first fields. Does not flip the rest of the layout. */
+export const rtlInput = {
+  textAlign: 'right' as const,
+  writingDirection: 'rtl' as const,
+};
+
+export const SearchField = forwardRef<
+  ComponentRef<typeof TextInput>,
+  {
+    value: string;
+    onChangeText: (value: string) => void;
+    placeholder: string;
+    autoFocus?: boolean;
+  }
+>(function SearchField({ value, onChangeText, placeholder, autoFocus = false }, ref) {
   return (
     <View style={styles.search}>
       <Ionicons name="search" size={18} color={colors.muted} />
       <TextInput
+        ref={ref}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -80,7 +86,7 @@ export function SearchField({
       />
     </View>
   );
-}
+});
 
 export function HeartButton({
   filled,
@@ -234,7 +240,7 @@ const styles = StyleSheet.create({
   avatarText: { color: colors.white, fontWeight: '800' },
   wordmark: { fontFamily: fonts.serif, color: colors.ink, letterSpacing: -0.4 },
   search: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.white,
@@ -243,7 +249,14 @@ const styles = StyleSheet.create({
     height: 48,
     ...shadow.soft,
   },
-  searchInput: { flex: 1, fontFamily: fonts.sans, fontSize: 16, color: colors.ink, paddingVertical: 0 },
+  searchInput: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 16,
+    color: colors.ink,
+    paddingVertical: 0,
+    ...rtlInput,
+  },
   heart: { alignItems: 'center', justifyContent: 'center' },
   primary: {
     flex: 1,

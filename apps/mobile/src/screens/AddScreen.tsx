@@ -43,7 +43,7 @@ import { searchTelAvivPlaces } from '../search';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
 import { colors, shadow } from '../theme';
-import { Thumb } from '../components/ui';
+import { Thumb, rtlInput } from '../components/ui';
 import { brandHaptic } from '../motion';
 
 function one(value: string | string[] | undefined): string | undefined {
@@ -241,7 +241,6 @@ export function AddScreen() {
         automaticallyAdjustKeyboardInsets={false}
       >
         <View style={styles.search}>
-          <Ionicons name="search" size={18} color={colors.muted} />
           <TextInput
             ref={searchRef}
             value={query}
@@ -259,6 +258,7 @@ export function AddScreen() {
             blurOnSubmit
             onSubmitEditing={() => searchRef.current?.blur()}
           />
+          <Ionicons name="search" size={18} color={colors.muted} />
         </View>
         <Text style={styles.kicker}>{query.trim() ? 'PLACES' : 'NEAR YOU'}</Text>
         {hits.map((hit) => {
@@ -317,7 +317,7 @@ export function AddScreen() {
               onChangeText={setCustomName}
               placeholder="Place name"
               placeholderTextColor={colors.faint}
-              style={styles.note}
+              style={[styles.note, rtlInput]}
               returnKeyType="done"
               blurOnSubmit
             />
@@ -402,7 +402,7 @@ export function AddScreen() {
                 }}
                 placeholder="Tag"
                 placeholderTextColor={colors.faint}
-                style={styles.note}
+                style={[styles.note, rtlInput]}
                 autoFocus
                 returnKeyType="done"
                 blurOnSubmit
@@ -415,7 +415,7 @@ export function AddScreen() {
                 onChangeText={(value) => setNote(value.slice(0, MAX_NOTE_LENGTH))}
                 placeholder="Lamb kebab, sit at the bar"
                 placeholderTextColor={colors.faint}
-                style={[styles.note, styles.noteMultiline]}
+                style={[styles.note, styles.noteMultiline, rtlInput]}
                 multiline
                 inputAccessoryViewID={Platform.OS === 'ios' ? NOTE_ACCESSORY_ID : undefined}
               />
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 48,
   },
-  searchInput: { flex: 1, fontSize: 16, color: colors.ink },
+  searchInput: { flex: 1, fontSize: 16, color: colors.ink, ...rtlInput },
   kicker: { marginTop: 16, marginBottom: 8, color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.6 },
   result: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   resultName: { fontWeight: '800', fontSize: 16 },

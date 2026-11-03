@@ -13,6 +13,8 @@ interface Props {
   pins: MapPin[];
   selectedId?: string;
   onSelect: (placeId: string) => void;
+  /** Tap or pan on the map. Used to dismiss the keyboard without taking the gesture. */
+  onInteract?: () => void;
 }
 
 const initialRegion: Region = {
@@ -27,7 +29,7 @@ const initialRegion: Region = {
  * intentionally omitted — PROVIDER_GOOGLE would require a Maps API key.
  * Android uses the illustrated Tel Aviv map so the diary still opens with no key.
  */
-export const PlaceMap = forwardRef<PlaceMapHandle, Props>(function PlaceMap({ pins, selectedId, onSelect }, ref) {
+export const PlaceMap = forwardRef<PlaceMapHandle, Props>(function PlaceMap({ pins, selectedId, onSelect, onInteract }, ref) {
   const mapRef = useRef<MapView>(null);
 
   useImperativeHandle(ref, () => ({
@@ -45,7 +47,7 @@ export const PlaceMap = forwardRef<PlaceMapHandle, Props>(function PlaceMap({ pi
   }));
 
   if (Platform.OS !== 'ios') {
-    return <IllustratedMap pins={pins} selectedId={selectedId} onSelect={onSelect} />;
+    return <IllustratedMap pins={pins} selectedId={selectedId} onSelect={onSelect} onInteract={onInteract} />;
   }
 
   return (
@@ -58,6 +60,8 @@ export const PlaceMap = forwardRef<PlaceMapHandle, Props>(function PlaceMap({ pi
       toolbarEnabled={false}
       rotateEnabled={false}
       pitchEnabled={false}
+      onPress={() => onInteract?.()}
+      onPanDrag={() => onInteract?.()}
     >
       {pins.map((pin) => (
         <Marker

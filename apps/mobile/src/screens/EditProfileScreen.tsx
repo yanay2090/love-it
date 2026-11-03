@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PrimaryButton } from '../components/ui';
+import { PrimaryButton, rtlInput } from '../components/ui';
 import { useAuth } from '../auth/AuthProvider';
 import { useApp } from '../store';
 import { colors } from '../theme';
@@ -29,21 +29,21 @@ export function EditProfileScreen() {
       </View>
       {session ? null : <Text style={styles.error}>Sign in to edit your page.</Text>}
       <Text style={styles.label}>Name</Text>
-      <TextInput value={displayName} onChangeText={setDisplayName} style={styles.input} editable={Boolean(session)} />
+      <TextInput value={displayName} onChangeText={setDisplayName} style={[styles.input, rtlInput]} editable={Boolean(session)} />
       <Text style={styles.label}>Handle</Text>
       <TextInput
         value={handle}
         onChangeText={(value) => setHandle(value.toLowerCase().replace(/^@/, ''))}
         autoCapitalize="none"
         autoCorrect={false}
-        style={styles.input}
+        style={[styles.input, rtlInput]}
         editable={Boolean(session)}
       />
       <Text style={styles.label}>Bio</Text>
       <TextInput
         value={bio}
         onChangeText={setBio}
-        style={[styles.input, styles.bio]}
+        style={[styles.input, styles.bio, rtlInput]}
         multiline
         editable={Boolean(session)}
       />

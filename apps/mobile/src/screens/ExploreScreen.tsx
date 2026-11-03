@@ -13,11 +13,12 @@ import {
   type PlaceCategory,
 } from '@love-it/shared';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { Alert, FlatList, Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { tabBarOffset } from '../components/AppTabBar';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap, type PlaceMapHandle } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
@@ -55,7 +56,12 @@ export function ExploreScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<PlaceMapHandle>(null);
+  const searchRef = useRef<ComponentRef<typeof TextInput>>(null);
   const openedAt = useRef(Date.now());
+  const dismissSearch = useCallback(() => {
+    searchRef.current?.blur();
+    Keyboard.dismiss();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -140,7 +146,9 @@ export function ExploreScreen() {
           ref={mapRef}
           pins={pins}
           selectedId={selected?.id}
+          onInteract={dismissSearch}
           onSelect={(placeId) => {
+            dismissSearch();
             brandHaptic('pinSelect');
             setSelectedId(placeId);
             const place = places.find((item) => item.id === placeId);
@@ -151,7 +159,13 @@ export function ExploreScreen() {
         <FlatList
           data={places}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingTop: headerHeight + 12, paddingHorizontal: 16, paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{
+            paddingTop: headerHeight + 12,
+            paddingHorizontal: 16,
+            paddingBottom: tabBarOffset(insets.bottom) + 16,
+          }}
           ListEmptyComponent={<Text style={styles.empty}>No places match that.</Text>}
           renderItem={({ item }) => {
             const view = buildPlaceView(data, item.id, me.id);
@@ -165,7 +179,10 @@ export function ExploreScreen() {
                 author={friend ? firstName(friend.profile.displayName) : undefined}
                 tag={friend?.entry.tags[0] ?? view?.viewerEntry?.tags[0]}
                 saved={Boolean(view?.viewerEntry)}
-                onPress={() => openPlace(item.id, 'list')}
+                onPress={() => {
+                  dismissSearch();
+                  openPlace(item.id, 'list');
+                }}
                 onHeart={() => onQuick(item.id, item.category)}
               />
             );
@@ -184,7 +201,7 @@ export function ExploreScreen() {
             <Avatar initials={me.initials} color={me.avatarColor} size={40} imageUri={me.avatarUrl} />
           </Pressable>
         </View>
-        <SearchField value={query} onChangeText={setQuery} placeholder="Search places" />
+        <SearchField ref={searchRef} value={query} onChangeText={setQuery} placeholder="Search places" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {MAIN_CHIPS.map((item) => (
             <Chip
@@ -192,17 +209,34 @@ export function ExploreScreen() {
               label={item.label}
               active={chip === item.id}
               badge={item.id === 'friends' ? friendCount : undefined}
-              onPress={() => setChip(item.id)}
+              onPress={() => {
+                dismissSearch();
+                setChip(item.id);
+              }}
             />
           ))}
-          <Pressable style={styles.filter} onPress={() => setMore((value) => !value)}>
+          <Pressable
+            style={styles.filter}
+            onPress={() => {
+              dismissSearch();
+              setMore((value) => !value);
+            }}
+          >
             <Ionicons name="options-outline" size={18} color={colors.ink} />
           </Pressable>
         </ScrollView>
         {more ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {MORE_CHIPS.map((item) => (
-              <Chip key={item.id} label={item.label} active={chip === item.id} onPress={() => setChip(item.id)} />
+              <Chip
+                key={item.id}
+                label={item.label}
+                active={chip === item.id}
+                onPress={() => {
+                  dismissSearch();
+                  setChip(item.id);
+                }}
+              />
             ))}
           </ScrollView>
         ) : null}
@@ -217,7 +251,10 @@ export function ExploreScreen() {
       </View>
 
       {mode === 'map' && headerHeight > 0 ? (
-        <View style={[styles.mapChrome, { top: headerHeight }]} pointerEvents="box-none">
+        <View
+          style={[styles.mapChrome, { top: headerHeight, bottom: tabBarOffset(insets.bottom) }]}
+          pointerEvents="box-none"
+        >
           {selected ? (
             <PreviewCard
               placeId={selected.id}

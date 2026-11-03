@@ -8,7 +8,7 @@ export interface PlaceMapHandle {
 
 export const PlaceMap = forwardRef<
   PlaceMapHandle,
-  { pins: MapPin[]; selectedId?: string; onSelect: (placeId: string) => void }
+  { pins: MapPin[]; selectedId?: string; onSelect: (placeId: string) => void; onInteract?: () => void }
 >(function PlaceMap(props, ref) {
   useImperativeHandle(ref, () => ({ recenter: () => undefined }));
   return <IllustratedMap {...props} />;
