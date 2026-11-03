@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Next writes an AGENTS.md on dev. Keep the repo free of that generated file.
   agentRules: false,
+  async rewrites() {
+    return [
+      { source: '/og/profile/:handle.png', destination: '/og/profile/:handle' },
+      { source: '/og/place/:id.png', destination: '/og/place/:id' },
+    ];
+  },
   async redirects() {
     return [
       {

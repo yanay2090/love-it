@@ -37,6 +37,8 @@ export interface PublicProfilePage {
   following: number;
   places: PublicPlaceCard[];
   source: 'seed' | 'supabase';
+  /** Newest public save. Used to bust the share-image cache. */
+  updatedAt: string;
 }
 
 export async function loadPublicProfile(handle: string): Promise<PublicProfilePage | null> {
@@ -92,6 +94,7 @@ function pageFromData(data: LoveItData, profile: UserProfile, source: PublicProf
     following: followingCount(data, profile.id),
     places,
     source,
+    updatedAt: entries.reduce((latest, entry) => (entry.createdAt > latest ? entry.createdAt : latest), ''),
   };
 }
 
@@ -170,6 +173,10 @@ async function loadRemoteProfile(handle: string): Promise<PublicProfilePage | nu
     following: following ?? 0,
     places,
     source: 'supabase',
+    updatedAt: (entryRows ?? []).reduce((latest, entry) => {
+      const created = String(entry.created_at ?? '');
+      return created > latest ? created : latest;
+    }, ''),
   };
 }
 

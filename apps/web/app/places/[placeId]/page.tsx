@@ -6,7 +6,7 @@ import { PhotoGallery } from '../../../components/PhotoGallery';
 import { TrackPublicPage } from '../../../components/TrackPublicPage';
 import { loadPublicPlace, seedPlaceIds } from '../../../lib/data';
 import { isPlaceholderMode } from '../../../lib/launch';
-import { fallbackShareMetadata, placeShareCopy, shareMetadata, siteOrigin } from '../../../lib/og/share';
+import { fallbackShareMetadata, ogVersion, placeShareCopy, shareMetadata, siteOrigin } from '../../../lib/og/share';
 
 export function generateStaticParams() {
   if (isPlaceholderMode()) return [];
@@ -23,16 +23,17 @@ export async function generateMetadata({
   if (!loaded || (isPlaceholderMode() && loaded.source === 'seed')) {
     return fallbackShareMetadata({ index: false, follow: false });
   }
-  const copy = placeShareCopy(
-    loaded.view.place,
-    loaded.view.lovers.map((lover) => lover.profile),
+  const copy = placeShareCopy(loaded.view.place);
+  const updatedAt = loaded.view.lovers.reduce(
+    (latest, lover) => (lover.entry.createdAt > latest ? lover.entry.createdAt : latest),
+    '',
   );
   const origin = siteOrigin();
   return shareMetadata({
     title: copy.title,
     description: copy.description,
     url: `${origin}/places/${encodeURIComponent(placeId)}`,
-    image: `${origin}/places/${encodeURIComponent(placeId)}/opengraph-image`,
+    image: `${origin}/og/place/${encodeURIComponent(placeId)}.png?v=${ogVersion(updatedAt)}`,
   });
 }
 

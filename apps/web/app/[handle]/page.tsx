@@ -6,7 +6,7 @@ import { PinMap } from '../../components/PinMap';
 import { TrackPublicPage } from '../../components/TrackPublicPage';
 import { loadPublicProfile, seedHandles } from '../../lib/data';
 import { isPlaceholderMode } from '../../lib/launch';
-import { fallbackShareMetadata, profileShareCopy, shareMetadata, siteOrigin } from '../../lib/og/share';
+import { fallbackShareMetadata, ogVersion, profileShareCopy, shareMetadata, siteOrigin } from '../../lib/og/share';
 
 function hiddenSeedHandle(handle: string): boolean {
   if (!isPlaceholderMode()) return false;
@@ -28,13 +28,13 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   }
   const page = await loadPublicProfile(handle);
   if (!page) return fallbackShareMetadata({ index: false, follow: false });
-  const copy = profileShareCopy(page.profile.displayName, page.loved);
+  const copy = profileShareCopy(page.profile.displayName, page.loved, page.profile.city);
   const origin = siteOrigin();
   return shareMetadata({
     title: copy.title,
     description: copy.description,
     url: `${origin}/${page.profile.handle}`,
-    image: `${origin}/${page.profile.handle}/opengraph-image`,
+    image: `${origin}/og/profile/${page.profile.handle}.png?v=${ogVersion(page.updatedAt)}`,
   });
 }
 

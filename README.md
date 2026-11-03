@@ -149,7 +149,7 @@ To click the coming-soon page on this machine before deploy: `NEXT_PUBLIC_LAUNCH
 
 ### Share previews
 
-Profile and place links advertise an Open Graph image for WhatsApp, iMessage, and X. Home and unknown handles use `https://loveitapp.com/og-default.png`. A real page uses `/{handle}/opengraph-image` or `/places/{id}/opengraph-image` (1200×630 PNG). The card layout lives in `apps/web/lib/og/card.tsx` so it can be replaced when a final banner arrives.
+Profile and place links advertise an Open Graph image for WhatsApp, iMessage, and X. Home and unknown handles use `https://loveitapp.com/og-default.png`. A real page uses `/og/profile/{handle}.png` or `/og/place/{id}.png` (1200×630). The layout is `apps/web/lib/og/layout.ts`, measured from the design spec.
 
 WhatsApp caches previews hard. After `npm run deploy`, test a fresh URL such as `https://loveitapp.com/yourhandle?v=2` (the query is enough to bust the cache) and paste the same URL into [opengraph.xyz](https://www.opengraph.xyz/). The image response should be `content-type: image/png` and under 300KB.
 
