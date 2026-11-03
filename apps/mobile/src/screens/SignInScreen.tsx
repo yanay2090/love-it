@@ -2,32 +2,41 @@ import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '../auth/AuthProvider';
+import { SIGN_IN_CANCELLED, useAuth } from '../auth/AuthProvider';
 import { colors, fonts } from '../theme';
 
 const appleSignInEnabled = Constants.expoConfig?.extra?.appleSignIn === true;
+
+type SignInProvider = 'google' | 'apple';
 
 export function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { configured, signInWithApple, signInWithGoogle } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busyProvider, setBusyProvider] = useState<SignInProvider | null>(null);
+  const busyRef = useRef(false);
 
-  async function run(action: () => Promise<string | null>) {
-    if (busy) return;
-    setBusy(true);
+  async function run(provider: SignInProvider, action: () => Promise<string | null>) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusyProvider(provider);
     setMessage(null);
-    const error = await action();
-    setBusy(false);
-    if (error) {
-      setMessage(error);
-      return;
+    try {
+      const error = await action();
+      if (error === SIGN_IN_CANCELLED) return;
+      if (error) {
+        setMessage(error);
+        return;
+      }
+      router.back();
+    } finally {
+      busyRef.current = false;
+      setBusyProvider(null);
     }
-    router.back();
   }
 
   return (
@@ -44,18 +53,30 @@ export function SignInScreen() {
       ) : null}
 
       {appleSignInEnabled && Platform.OS === 'ios' ? (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={26}
-          style={styles.apple}
-          onPress={() => void run(signInWithApple)}
-        />
+        busyProvider === 'apple' ? (
+          <View style={[styles.apple, styles.appleBusy]} accessibilityState={{ disabled: true, busy: true }}>
+            <Text style={styles.appleBusyText}>Signing in…</Text>
+          </View>
+        ) : (
+          <View pointerEvents={busyProvider ? 'none' : 'auto'} style={busyProvider ? styles.disabled : undefined}>
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={26}
+              style={styles.apple}
+              onPress={() => void run('apple', signInWithApple)}
+            />
+          </View>
+        )
       ) : null}
 
-      <Pressable style={styles.google} disabled={busy} onPress={() => void run(signInWithGoogle)}>
+      <Pressable
+        style={[styles.google, busyProvider ? styles.disabled : null]}
+        disabled={busyProvider !== null}
+        onPress={() => void run('google', signInWithGoogle)}
+      >
         <Ionicons name="logo-google" size={18} color={colors.ink} />
-        <Text style={styles.googleText}>{busy ? 'Signing in…' : 'Sign in with Google'}</Text>
+        <Text style={styles.googleText}>{busyProvider === 'google' ? 'Signing in…' : 'Sign in with Google'}</Text>
       </Pressable>
       {message ? <Text style={styles.message}>{message}</Text> : null}
     </View>
@@ -69,6 +90,14 @@ const styles = StyleSheet.create({
   close: { color: colors.ink, fontFamily: fonts.sansSemibold, fontSize: 16 },
   lede: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 22, color: colors.stone, marginBottom: 8 },
   apple: { width: '100%', height: 52 },
+  appleBusy: {
+    borderRadius: 26,
+    backgroundColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appleBusyText: { color: '#fff', fontFamily: fonts.sansMedium, fontSize: 16 },
+  disabled: { opacity: 0.45 },
   google: {
     height: 52,
     borderRadius: 26,

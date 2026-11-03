@@ -1,5 +1,5 @@
 import type { Session, User } from '@supabase/supabase-js';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin, isErrorWithCode, statusCodes } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -34,6 +34,9 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/** Sheet dismissed. Not a failure, and not a completed sign-in. */
+export const SIGN_IN_CANCELLED = 'SIGN_IN_CANCELLED';
 
 let googleConfigured = false;
 
@@ -188,7 +191,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-      if (typeof error === 'object' && error && 'code' in error && error.code === 'ERR_REQUEST_CANCELED') return null;
+      if (typeof error === 'object' && error && 'code' in error && error.code === 'ERR_REQUEST_CANCELED') {
+        return SIGN_IN_CANCELLED;
+      }
       return error instanceof Error ? error.message : 'Apple sign-in failed.';
     }
   }, [supabase]);
@@ -199,12 +204,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (missing) return missing;
     try {
       const response = await GoogleSignin.signIn();
-      if (response.type !== 'success') return null;
+      if (response.type !== 'success') return SIGN_IN_CANCELLED;
       const token = response.data.idToken;
       if (!token) return 'Google did not return an ID token. Check the Web client ID.';
       const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token });
       return error ? error.message : null;
     } catch (error) {
+      if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) return SIGN_IN_CANCELLED;
       return error instanceof Error ? error.message : 'Google sign-in failed.';
     }
   }, [supabase]);
