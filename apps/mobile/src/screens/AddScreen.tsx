@@ -65,6 +65,8 @@ export function AddScreen() {
 
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<PlaceSearchHit[]>([]);
+  const [settledQuery, setSettledQuery] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(placeId ?? null);
   const [custom, setCustom] = useState(false);
   const [customName, setCustomName] = useState('');
@@ -126,16 +128,25 @@ export function AddScreen() {
   useEffect(() => {
     let cancelled = false;
     const handle = setTimeout(() => {
-      void searchTelAvivPlaces(query, data.places, here ?? DEMO_ORIGIN).then((next) => {
-        if (cancelled) return;
-        setHits(next);
-        setSelectedKey((current) => {
-          if (!current) return null;
-          if (!query.trim() && current === openedWithPlace.current) return current;
-          if (next.some((hit) => hit.key === current || hit.placeId === current)) return current;
-          return null;
+      void searchTelAvivPlaces(query, data.places, here ?? DEMO_ORIGIN)
+        .then((next) => {
+          if (cancelled) return;
+          setHits(next);
+          setSearchError(null);
+          setSettledQuery(query);
+          setSelectedKey((current) => {
+            if (!current) return null;
+            if (!query.trim() && current === openedWithPlace.current) return current;
+            if (next.some((hit) => hit.key === current || hit.placeId === current)) return current;
+            return null;
+          });
+        })
+        .catch((error: unknown) => {
+          if (cancelled) return;
+          setHits([]);
+          setSettledQuery(query);
+          setSearchError(error instanceof Error ? error.message : 'Place search failed.');
         });
-      });
     }, 160);
     return () => {
       cancelled = true;
@@ -261,6 +272,9 @@ export function AddScreen() {
           <Ionicons name="search" size={18} color={colors.muted} />
         </View>
         <Text style={styles.kicker}>{query.trim() ? 'PLACES' : 'NEAR YOU'}</Text>
+        {settledQuery === query && query.trim() && hits.length === 0 ? (
+          <Text style={styles.empty}>{searchError ?? 'No places match that.'}</Text>
+        ) : null}
         {hits.map((hit) => {
           const active = !custom && (hit.key === selectedKey || hit.placeId === selectedKey);
           return (
@@ -548,6 +562,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 16, color: colors.ink, ...rtlInput },
   kicker: { marginTop: 16, marginBottom: 8, color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.6 },
+  empty: { color: colors.muted, fontSize: 16, lineHeight: 22, marginBottom: 12 },
   result: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   resultName: { fontWeight: '800', fontSize: 16 },
   resultMeta: { color: colors.muted, marginTop: 2 },

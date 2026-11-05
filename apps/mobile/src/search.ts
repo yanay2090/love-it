@@ -1,5 +1,5 @@
 import type { NativePlaceSearch, Place, PlaceSearchHit } from '@love-it/shared';
-import { DEMO_ORIGIN, categoryFromApplePoi, friendlyPlaceSubtitle, searchPlaces } from '@love-it/shared';
+import { DEMO_ORIGIN, categoryFromApplePoi, cloneSeed, friendlyPlaceSubtitle, searchPlaces } from '@love-it/shared';
 import { NativeModules } from 'react-native';
 import { getLoveItLocalSearch, type LocalSearchRow } from '../modules/love-it-local-search/src';
 
@@ -14,10 +14,26 @@ export function getMkLocalSearch(): NativePlaceSearch | null {
   const native = readNativeSearch();
   if (!native) return null;
   return async (query, bias) => {
-    const raw = await native.search(query, bias.lat, bias.lng);
+    const raw = await withTimeout(native.search(query, bias.lat, bias.lng), 8000);
     if (!Array.isArray(raw)) return [];
     return raw.flatMap((item) => hitFromNative(item));
   };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Place search timed out.')), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error('Place search failed.'));
+      },
+    );
+  });
 }
 
 function readNativeSearch(): { search: (query: string, latitude: number, longitude: number) => Promise<unknown> } | null {
@@ -28,6 +44,14 @@ function readNativeSearch(): { search: (query: string, latitude: number, longitu
     | undefined;
   if (!legacy?.search) return null;
   return { search: legacy.search.bind(legacy) };
+}
+
+/** Tel Aviv seed, plus any places already on this phone, so a signed-in diary is not the whole catalog. */
+function searchCatalog(extra: Place[]): Place[] {
+  const byId = new Map<string, Place>();
+  for (const place of cloneSeed().places) byId.set(place.id, place);
+  for (const place of extra) byId.set(place.id, place);
+  return [...byId.values()];
 }
 
 function hitFromNative(item: unknown): PlaceSearchHit[] {
@@ -67,7 +91,7 @@ export function searchTelAvivPlaces(
   bias: { lat: number; lng: number } = DEMO_ORIGIN,
 ): Promise<PlaceSearchHit[]> {
   const nativeSearch = getMkLocalSearch() ?? undefined;
-  return searchPlaces(query, places, {
+  return searchPlaces(query, searchCatalog(places), {
     bias,
     token: process.env.EXPO_PUBLIC_APPLE_MAPS_TOKEN || undefined,
     nativeSearch,

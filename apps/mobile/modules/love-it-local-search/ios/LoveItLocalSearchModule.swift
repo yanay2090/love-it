@@ -2,6 +2,13 @@ import ExpoModulesCore
 import MapKit
 
 public class LoveItLocalSearchModule: Module {
+  /// MKLocalSearch is cancelled if nothing retains it. A release build drops the
+  /// temporary object as soon as `start` returns, so the completion never runs
+  /// and the suggestion list stays empty. Debug builds often keep it alive long
+  /// enough to hide the bug.
+  private static let lock = NSLock()
+  private static var inFlight: [ObjectIdentifier: MKLocalSearch] = [:]
+
   public func definition() -> ModuleDefinition {
     Name("LoveItLocalSearch")
 
@@ -43,7 +50,15 @@ public class LoveItLocalSearchModule: Module {
         .cafe, .restaurant, .bakery, .brewery, .nightlife, .winery, .foodMarket,
       ])
     }
-    MKLocalSearch(request: request).start { response, _ in
+    let search = MKLocalSearch(request: request)
+    let key = ObjectIdentifier(search)
+    lock.lock()
+    inFlight[key] = search
+    lock.unlock()
+    search.start { response, _ in
+      lock.lock()
+      inFlight.removeValue(forKey: key)
+      lock.unlock()
       let rows = (response?.mapItems ?? []).compactMap { serialize($0) }
       done(rows)
     }
