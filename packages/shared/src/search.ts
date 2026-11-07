@@ -71,7 +71,24 @@ export async function searchPlaces(
         .slice(0, limit)
         .map((place) => placeToHit(place, bias));
 
-  if (!q) return seedHits;
+  if (!q) {
+    if (options.nativeSearch) {
+      try {
+        const nativeHits = (await options.nativeSearch('', bias))
+          .map((hit) => ({
+            ...hit,
+            subtitle: friendlyPlaceSubtitle(hit.subtitle, hit.category),
+            source: 'mk-local-search' as const,
+            distanceMeters: distanceMeters(bias, hit),
+          }))
+          .sort((a, b) => a.distanceMeters - b.distanceMeters);
+        if (nativeHits.length > 0) return mergeHits(nativeHits, seedHits).slice(0, limit);
+      } catch {
+        // Nearby Apple search failed. The seed list is still a map.
+      }
+    }
+    return seedHits;
+  }
 
   if (options.nativeSearch) {
     try {

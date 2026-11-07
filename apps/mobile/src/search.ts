@@ -95,6 +95,6 @@ export function searchTelAvivPlaces(
     bias,
     token: process.env.EXPO_PUBLIC_APPLE_MAPS_TOKEN || undefined,
     nativeSearch,
-    limit: 12,
+    limit: 30,
   });
 }

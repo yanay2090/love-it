@@ -65,6 +65,31 @@ assert(jajo && canViewEntry(seedData, jajo, 'user_tom'), 'Tom follows Yael, so h
 async function main(): Promise<void> {
   const hits = await searchPlaces('lev flo', seedData.places);
 assert(hits[0]?.placeId === 'place_lev_florentin', `search "lev flo" should rank Lev first, got ${hits[0]?.name}`);
+const nearby = await searchPlaces('', seedData.places, {
+  limit: 30,
+  nativeSearch: async () => [
+    {
+      key: 'near-cafe',
+      applePlaceId: 'near-1',
+      isCustomPin: false,
+      name: 'Nearby Cafe',
+      category: 'cafe',
+      subtitle: 'Cafe',
+      neighborhood: 'Florentin',
+      city: 'Tel Aviv',
+      address: '',
+      lat: 32.06,
+      lng: 34.77,
+      priceLevel: 2,
+      distanceMeters: 0,
+      source: 'mk-local-search',
+    },
+  ],
+});
+assert(nearby[0]?.name === 'Nearby Cafe', 'an empty search lists nearby Apple places first');
+assert(nearby.some((hit) => hit.source === 'seed'), 'an empty search still includes the seed list');
+assert(nearby.length <= 30, 'search results stay within the longer cap');
+
 const bakery = await searchPlaces('levona', seedData.places);
 assert(bakery.some((hit) => hit.placeId === 'place_levona'), 'Levona Bakery is searchable with no API key');
 const people = await searchPlaces('tom shalev', seedData.places);
