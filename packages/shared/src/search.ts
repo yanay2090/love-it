@@ -99,8 +99,10 @@ export async function searchPlaces(
         distanceMeters: distanceMeters(bias, hit),
       }));
       if (nativeHits.length > 0) return mergeHits(nativeHits, supportingSeed(seedHits, q)).slice(0, limit);
-    } catch {
-      // Fall through to the server API and the catalog.
+    } catch (error) {
+      if (supportingSeed(seedHits, q).length === 0) {
+        throw error instanceof Error ? error : new Error('Place search failed.');
+      }
     }
   }
 

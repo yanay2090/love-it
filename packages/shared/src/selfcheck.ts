@@ -90,6 +90,18 @@ assert(nearby[0]?.name === 'Nearby Cafe', 'an empty search lists nearby Apple pl
 assert(nearby.some((hit) => hit.source === 'seed'), 'an empty search still includes the seed list');
 assert(nearby.length <= 30, 'search results stay within the longer cap');
 
+let appleError = '';
+try {
+  await searchPlaces('cafe 38', seedData.places, {
+    nativeSearch: async () => {
+      throw new Error('Apple Maps is unavailable.');
+    },
+  });
+} catch (error) {
+  appleError = error instanceof Error ? error.message : '';
+}
+assert(appleError.includes('Apple Maps'), 'a failed Apple search with no seed match is shown');
+
 const bakery = await searchPlaces('levona', seedData.places);
 assert(bakery.some((hit) => hit.placeId === 'place_levona'), 'Levona Bakery is searchable with no API key');
 const people = await searchPlaces('tom shalev', seedData.places);

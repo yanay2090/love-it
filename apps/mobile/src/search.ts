@@ -14,7 +14,7 @@ export function getMkLocalSearch(): NativePlaceSearch | null {
   const native = readNativeSearch();
   if (!native) return null;
   return async (query, bias) => {
-    const raw = await withTimeout(native.search(query, bias.lat, bias.lng), 8000);
+    const raw = await withTimeout(native.search(query, bias.lat, bias.lng), 12_000);
     if (!Array.isArray(raw)) return [];
     return raw.flatMap((item) => hitFromNative(item));
   };
@@ -96,5 +96,10 @@ export function searchTelAvivPlaces(
     token: process.env.EXPO_PUBLIC_APPLE_MAPS_TOKEN || undefined,
     nativeSearch,
     limit: 30,
+  }).then((hits) => {
+    if (!nativeSearch && query.trim() && hits.length === 0) {
+      throw new Error('Apple Maps search is not in this build. Rebuild the app on the phone.');
+    }
+    return hits;
   });
 }
