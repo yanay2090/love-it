@@ -2,6 +2,10 @@
   "name": "love-it-local-search",
   "version": "1.0.0",
   "private": true,
+  "description": "Apple Maps place search for Love it",
+  "license": "UNLICENSED",
+  "author": "Love it",
+  "homepage": "https://github.com/yanay2090/love-it",
   "main": "src/index.ts",
   "peerDependencies": {
     "expo": "*"

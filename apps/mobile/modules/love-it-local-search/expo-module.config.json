@@ -1,6 +1,7 @@
 {
   "platforms": ["apple"],
   "apple": {
-    "modules": ["LoveItLocalSearchModule"]
+    "modules": ["LoveItLocalSearchModule"],
+    "podspecPath": "ios/LoveItLocalSearch.podspec"
   }
 }
