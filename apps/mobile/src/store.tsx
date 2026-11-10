@@ -41,8 +41,6 @@ interface AppContextValue {
   data: LoveItData;
   me: UserProfile;
   diaryError: string | null;
-  lastTab: 'explore' | 'me';
-  setLastTab: (tab: 'explore' | 'me') => void;
   reloadDiary: () => Promise<void>;
   save: (input: Omit<SaveEntryInput, 'userId'>) => Promise<Entry>;
   removeSave: (entryId: string) => Promise<void>;
@@ -64,7 +62,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [diary, setDiary] = useState<LoveItData | null>(null);
   const [accountReady, setAccountReady] = useState(false);
   const [diaryError, setDiaryError] = useState<string | null>(null);
-  const [lastTab, setLastTab] = useState<'explore' | 'me'>('explore');
   const userId = auth.session?.user.id ?? null;
 
   const reloadDiary = useCallback(async () => {
@@ -247,8 +244,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       data,
       me,
       diaryError,
-      lastTab,
-      setLastTab,
       reloadDiary,
       save,
       removeSave,
@@ -267,7 +262,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       data,
       me,
       diaryError,
-      lastTab,
       reloadDiary,
       save,
       removeSave,

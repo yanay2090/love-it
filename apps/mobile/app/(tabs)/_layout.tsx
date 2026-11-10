@@ -8,13 +8,9 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false }}
       tabBar={({ state, navigateToTab }) => (
         <AppTabBar
-          active={state.routes[state.index]?.name === 'me' ? 'me' : 'explore'}
+          active="explore"
           onExplore={() => {
             const route = state.routes.find((item) => item.name === 'index');
-            if (route) navigateToTab(route.key);
-          }}
-          onMe={() => {
-            const route = state.routes.find((item) => item.name === 'me');
             if (route) navigateToTab(route.key);
           }}
           onAdd={() => router.push('/add')}
@@ -22,7 +18,6 @@ export default function TabsLayout() {
       )}
     >
       <Tabs.Screen name="index" options={{ title: 'Explore' }} />
-      <Tabs.Screen name="me" options={{ title: 'My page' }} />
     </Tabs>
   );
 }

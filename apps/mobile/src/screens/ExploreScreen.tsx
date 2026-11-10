@@ -46,7 +46,7 @@ const MORE_CHIPS: Array<{ id: ExploreChip; label: string }> = [
 export function ExploreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data, me, setLastTab, quickSave } = useApp();
+  const { data, me, quickSave } = useApp();
   const requireAccount = useAccountGate();
   const [query, setQuery] = useState('');
   const [chip, setChip] = useState<ExploreChip>('friends');
@@ -65,7 +65,6 @@ export function ExploreScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setLastTab('explore');
       let cancelled = false;
       void (async () => {
         try {
@@ -84,7 +83,7 @@ export function ExploreScreen() {
       return () => {
         cancelled = true;
       };
-    }, [setLastTab]),
+    }, []),
   );
 
   const friendCount = friendLovedPlaces(data, me.id).length;
@@ -197,7 +196,7 @@ export function ExploreScreen() {
       >
         <View style={styles.titleRow}>
           <Wordmark />
-          <Pressable onPress={() => router.navigate('/me')} accessibilityLabel="My page">
+          <Pressable onPress={() => router.push('/me')} accessibilityLabel="My page">
             <Avatar initials={me.initials} color={me.avatarColor} size={40} imageUri={me.avatarUrl} />
           </Pressable>
         </View>

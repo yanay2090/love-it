@@ -4,17 +4,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brandHaptic, brandSpring } from '../motion';
-import { useApp } from '../store';
 import { colors, fonts, shadow } from '../theme';
 
 export function StackTabs() {
   const router = useRouter();
-  const { lastTab } = useApp();
   return (
     <AppTabBar
-      active={lastTab}
+      active="explore"
       onExplore={() => router.navigate('/')}
-      onMe={() => router.navigate('/me')}
       onAdd={() => router.push('/add')}
     />
   );
@@ -31,12 +28,10 @@ export function tabBarOffset(bottomInset: number): number {
 export function AppTabBar({
   active,
   onExplore,
-  onMe,
   onAdd,
 }: {
-  active: 'explore' | 'me';
+  active: 'explore';
   onExplore: () => void;
-  onMe: () => void;
   onAdd: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -66,7 +61,7 @@ export function AppTabBar({
             <Ionicons name="add" size={26} color={colors.paper} />
           </Animated.View>
         </Pressable>
-        <Tab icon="person" label="My page" active={active === 'me'} onPress={onMe} />
+        <View style={styles.slot} />
       </View>
     </View>
   );
@@ -78,7 +73,7 @@ function Tab({
   active,
   onPress,
 }: {
-  icon: 'compass' | 'person';
+  icon: 'compass';
   label: string;
   active: boolean;
   onPress: () => void;
@@ -128,6 +123,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     paddingHorizontal: 12,
   },
+  slot: { flex: 1 },
   tab: { alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: 72, minHeight: 44, flex: 1 },
   label: { fontFamily: fonts.sansSemibold, fontSize: 11 },
 });

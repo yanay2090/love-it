@@ -13,7 +13,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { tabBarOffset } from '../components/AppTabBar';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
@@ -35,7 +34,7 @@ const CHIPS: Array<{ id: ExploreChip; label: string }> = [
 export function MyPageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data, me, setLastTab, quickSave, diaryError, reloadDiary } = useApp();
+  const { data, me, quickSave, diaryError, reloadDiary } = useApp();
   const { session, profileError, signOut, deleteAccount, refreshProfile } = useAuth();
   const requireAccount = useAccountGate();
   const [mode, setMode] = useState<'map' | 'list'>('map');
@@ -46,12 +45,11 @@ export function MyPageScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setLastTab('me');
       if (session) {
         void refreshProfile();
         void reloadDiary();
       }
-    }, [refreshProfile, reloadDiary, session, setLastTab]),
+    }, [refreshProfile, reloadDiary, session]),
   );
 
   const pageName = me.displayName;
@@ -84,7 +82,19 @@ export function MyPageScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
       <View style={styles.top}>
-        <Text style={styles.handle}>@{pageHandle || '…'}</Text>
+        <View style={styles.topLead}>
+          <Pressable
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace('/');
+            }}
+            accessibilityLabel="Back"
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-back" size={26} color={colors.ink} />
+          </Pressable>
+          <Text style={styles.handle}>@{pageHandle || '…'}</Text>
+        </View>
         <View style={styles.topActions}>
           <Pressable onPress={() => void sharePage()} accessibilityLabel="Share my page">
             <Ionicons name="share-outline" size={22} color={colors.ink} />
@@ -154,7 +164,7 @@ export function MyPageScreen() {
           <FlatList
             data={entries}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: tabBarOffset(insets.bottom) + 12 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
             renderItem={({ item }) => {
               const place = placeById(data, item.placeId);
               if (!place) return null;
@@ -254,6 +264,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream, paddingHorizontal: 16 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  topLead: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
   handle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   topActions: { flexDirection: 'row', gap: 16 },
   identity: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
