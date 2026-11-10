@@ -43,7 +43,7 @@ import { searchTelAvivPlaces } from '../search';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
 import { colors, shadow } from '../theme';
-import { Thumb, rtlInput } from '../components/ui';
+import { rtlInput } from '../components/ui';
 import { brandHaptic } from '../motion';
 
 function one(value: string | string[] | undefined): string | undefined {
@@ -287,7 +287,6 @@ export function AddScreen() {
                 setSelectedKey(active ? null : hit.key);
               }}
             >
-              <Thumb uri={hit.placeId ? placeById(data, hit.placeId)?.covers[0] : undefined} size={48} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.resultName}>{hit.name}</Text>
                 <Text style={styles.resultMeta}>
@@ -563,7 +562,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 16, color: colors.ink, ...rtlInput },
   kicker: { marginTop: 16, marginBottom: 8, color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.6 },
   empty: { color: colors.muted, fontSize: 16, lineHeight: 22, marginBottom: 12 },
-  result: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  result: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
   resultName: { fontWeight: '800', fontSize: 16 },
   resultMeta: { color: colors.muted, marginTop: 2 },
   check: {
