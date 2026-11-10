@@ -45,10 +45,10 @@ export function Avatar({
   );
 }
 
-export function Wordmark({ size = 34 }: { size?: number }) {
+export function Wordmark({ size = 34, markScale = 1 }: { size?: number; markScale?: number }) {
   return (
     <Text style={[styles.wordmark, { fontSize: size }]}>
-      Love it <Text style={{ color: colors.coral }}>♥</Text>
+      Love it <Text style={{ color: colors.coral, fontSize: size * markScale }}>♥</Text>
     </Text>
   );
 }
@@ -66,23 +66,35 @@ export const SearchField = forwardRef<
     onChangeText: (value: string) => void;
     placeholder: string;
     autoFocus?: boolean;
+    accessibilityLabel?: string;
+    onFocus?: () => void;
+    onBlur?: () => void;
+    /** Map chrome: 12 pt radius, linen, hairline. Other fields stay pills. */
+    appearance?: 'pill' | 'field';
   }
->(function SearchField({ value, onChangeText, placeholder, autoFocus = false }, ref) {
+>(function SearchField(
+  { value, onChangeText, placeholder, autoFocus = false, accessibilityLabel, onFocus, onBlur, appearance = 'pill' },
+  ref,
+) {
   return (
-    <View style={styles.search}>
+    <View style={[styles.search, appearance === 'field' && styles.searchField]}>
       <Ionicons name="search" size={18} color={colors.muted} />
       <TextInput
         ref={ref}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.faint}
+        placeholderTextColor={appearance === 'field' ? colors.stone : colors.faint}
         style={styles.searchInput}
         autoFocus={autoFocus}
         autoCorrect={false}
         autoCapitalize="none"
         returnKeyType="search"
         clearButtonMode="while-editing"
+        accessibilityRole="search"
+        accessibilityLabel={accessibilityLabel ?? placeholder}
+        onFocus={onFocus}
+        onBlur={onBlur}
       />
     </View>
   );
@@ -243,11 +255,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.white,
+    backgroundColor: colors.linen,
     borderRadius: 24,
     paddingHorizontal: 14,
     height: 48,
     ...shadow.soft,
+  },
+  searchField: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.hairline,
   },
   searchInput: {
     flex: 1,

@@ -18,7 +18,7 @@ export function MapListToggle({
     x.value = brandSpring('snappy', mode === 'map' ? 0 : 1, reduced);
   }, [mode, reduced, x]);
   const thumb = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value * 78 }],
+    transform: [{ translateX: x.value * 80 }],
   }));
   return (
     <View style={styles.wrap}>
@@ -57,7 +57,13 @@ function Side({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.side}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={styles.side}
+    >
       <Ionicons name={icon} size={14} color={active ? colors.paper : colors.ink} />
       <Text style={[styles.text, active && styles.textOn]}>{label}</Text>
     </Pressable>
@@ -70,21 +76,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.linen,
     borderRadius: 18,
-    padding: 4,
+    padding: 2,
     ...shadow.soft,
   },
   thumb: {
     position: 'absolute',
-    top: 4,
-    left: 4,
-    width: 78,
-    height: 30,
-    borderRadius: 14,
+    top: 2,
+    left: 2,
+    width: 80,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.ink,
   },
   side: {
     flex: 1,
-    height: 30,
+    height: 32,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

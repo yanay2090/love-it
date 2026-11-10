@@ -16,16 +16,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StackTabs, tabBarOffset } from '../components/AppTabBar';
+import { backToMap, detailBottomPadding } from '../components/MapActions';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
-import { Avatar, PrimaryButton, SecondaryButton, rtlInput } from '../components/ui';
+import { Avatar, PrimaryButton, rtlInput } from '../components/ui';
 import { track } from '../analytics';
 import { sharePublicUrl } from '../share';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useApp } from '../store';
-import { colors } from '../theme';
+import { colors, fonts } from '../theme';
 import { REPORT_REASONS } from '@love-it/shared';
 
 function one(value: string | string[] | undefined): string {
@@ -56,7 +56,7 @@ export function ProfileScreen() {
     return (
       <View style={[styles.screen, { paddingTop: insets.top + 24, paddingHorizontal: 16 }]}>
         <Text style={styles.name}>No one uses that handle.</Text>
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={() => backToMap(router)} accessibilityRole="button" accessibilityLabel="Back">
           <Text style={styles.followLabel}>Go back</Text>
         </Pressable>
       </View>
@@ -113,13 +113,28 @@ export function ProfileScreen() {
     <View style={styles.screen}>
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16 }}>
         <View style={styles.top}>
-          <Pressable onPress={() => router.back()} accessibilityLabel="Back">
+          <Pressable
+            onPress={() => backToMap(router)}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={styles.iconHit}
+          >
             <Ionicons name="chevron-back" size={26} color={colors.ink} />
           </Pressable>
           <Text style={styles.handle}>@{profile.handle}</Text>
-          <Pressable onPress={() => setMenu(true)} accessibilityLabel="More">
-            <Ionicons name="ellipsis-horizontal" size={22} color={colors.ink} />
-          </Pressable>
+          <View style={styles.topActions}>
+            <Pressable
+              onPress={() => void sharePage()}
+              accessibilityRole="button"
+              accessibilityLabel="Share"
+              style={styles.iconHit}
+            >
+              <Ionicons name="share-outline" size={20} color={colors.ink} />
+            </Pressable>
+            <Pressable onPress={() => setMenu(true)} accessibilityLabel="More" style={styles.iconHit}>
+              <Ionicons name="ellipsis-horizontal" size={22} color={colors.ink} />
+            </Pressable>
+          </View>
         </View>
         <View style={styles.identity}>
           <Avatar initials={profile.initials} color={profile.avatarColor} size={84} ring imageUri={profile.avatarUrl} />
@@ -138,13 +153,17 @@ export function ProfileScreen() {
             {isMe ? (
               <PrimaryButton label="Edit page" onPress={() => router.push('/edit-profile')} />
             ) : (
-              <Pressable style={[styles.follow, following && styles.following]} onPress={onFollow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${following ? 'Following' : 'Follow'} ${profile.displayName}`}
+                style={[styles.follow, following && styles.following]}
+                onPress={onFollow}
+              >
                 <Text style={[styles.followLabel, following && styles.followingLabel]}>
-                  {following ? 'Following' : '+ Follow'}
+                  {following ? 'Following' : 'Follow'}
                 </Text>
               </Pressable>
             )}
-            <SecondaryButton label="Share" onPress={() => void sharePage()} />
           </View>
         )}
         <View style={styles.placesHead}>
@@ -168,7 +187,7 @@ export function ProfileScreen() {
           <FlatList
             data={entries}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: tabBarOffset(insets.bottom) + 12 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: detailBottomPadding(insets.bottom) }}
             ListEmptyComponent={<Text style={styles.empty}>No places to show.</Text>}
             renderItem={({ item }) => {
               const place = placeById(data, item.placeId);
@@ -195,7 +214,6 @@ export function ProfileScreen() {
           />
         )}
       </View>
-      <StackTabs />
 
       <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMenu(false)}>
@@ -281,6 +299,8 @@ function Stat({ value, label }: { value: string; label: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topActions: { flexDirection: 'row', alignItems: 'center' },
+  iconHit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   handle: { fontSize: 18, fontWeight: '800' },
   identity: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
   stats: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
@@ -292,14 +312,14 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   follow: {
     flex: 1,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.coral,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  following: { backgroundColor: '#F1EBE4' },
-  followLabel: { color: colors.white, fontWeight: '800', fontSize: 16 },
+  following: { backgroundColor: colors.linen, borderWidth: 1, borderColor: colors.hairline },
+  followLabel: { color: colors.paper, fontFamily: fonts.sansSemibold, fontSize: 15 },
   followingLabel: { color: colors.ink },
   blocked: { marginTop: 12, color: colors.muted },
   placesHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, marginBottom: 8 },

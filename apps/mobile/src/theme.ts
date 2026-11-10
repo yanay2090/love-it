@@ -50,4 +50,8 @@ export const shadow = {
     ...tokens.elevation.float,
     elevation: 3,
   },
+  fab: {
+    ...tokens.elevation.fab,
+    elevation: 12,
+  },
 } as const;

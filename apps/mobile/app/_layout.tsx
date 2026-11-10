@@ -51,9 +51,9 @@ export default function RootLayout() {
               }}
             >
               <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="me" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="place/[id]" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="u/[handle]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="me" options={{ animation: 'slide_from_right', gestureEnabled: true }} />
+              <Stack.Screen name="place/[id]" options={{ animation: 'slide_from_right', gestureEnabled: true }} />
+              <Stack.Screen name="u/[handle]" options={{ animation: 'slide_from_right', gestureEnabled: true }} />
               <Stack.Screen name="add" options={{ presentation: 'modal' }} />
               <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
               <Stack.Screen name="choose-handle" options={{ presentation: 'modal' }} />

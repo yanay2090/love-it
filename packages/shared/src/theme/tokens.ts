@@ -52,6 +52,7 @@ export const tokens = {
   elevation: {
     card: { shadowColor: '#1C1917', shadowOpacity: 0.14, shadowRadius: 20, shadowOffset: { width: 0, height: 16 } },
     float: { shadowColor: '#1C1917', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
+    fab: { shadowColor: '#1C1917', shadowOpacity: 0.28, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
   },
   motion: {
     spring: {

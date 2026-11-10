@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StackTabs, tabBarOffset } from '../components/AppTabBar';
+import { backToMap, detailBottomPadding } from '../components/MapActions';
 import { Gallery } from '../components/Gallery';
 import { Avatar } from '../components/ui';
 import { track } from '../analytics';
@@ -40,7 +40,7 @@ export function PlaceDetailScreen() {
     return (
       <View style={[styles.missing, { paddingTop: insets.top }]}>
         <Text style={styles.title}>This place isn’t in the diary.</Text>
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={() => backToMap(router)}>
           <Text style={styles.link}>Go back</Text>
         </Pressable>
       </View>
@@ -83,7 +83,7 @@ export function PlaceDetailScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={{ paddingBottom: tabBarOffset(insets.bottom) + 16 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: detailBottomPadding(insets.bottom) }}>
         <Gallery photos={view.heroPhotos} placeId={place.id} onDismiss={() => router.back()} />
         <View style={styles.body}>
           <Text style={styles.overline}>{placeDetailMeta(place).toUpperCase()}</Text>
@@ -93,11 +93,18 @@ export function PlaceDetailScreen() {
             {place.neighborhood ? ` · ${place.neighborhood}` : ''} · {priceLabel(place.priceLevel)}
           </Text>
           <View style={styles.actions}>
-            <Pressable style={[styles.pill, saved ? styles.pillOn : styles.pillOff]} onPress={onLove}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={saved ? 'Loved, double-tap to unsave' : 'Love it'}
+              style={[styles.pill, saved ? styles.pillOn : styles.pillOff]}
+              onPress={onLove}
+            >
               <Ionicons name="heart" size={16} color={saved ? colors.tomato : colors.ink} />
               <Text style={[styles.pillText, saved && styles.pillTextOn]}>{saved ? 'Loved' : 'Love it'}</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Directions"
               style={[styles.pill, styles.pillOff]}
               onPress={() =>
                 void Linking.openURL(
@@ -109,6 +116,8 @@ export function PlaceDetailScreen() {
               <Text style={styles.pillText}>Directions</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Website"
               style={[styles.pill, styles.pillOff]}
               onPress={() =>
                 void Linking.openURL(`https://maps.apple.com/?q=${encodeURIComponent(place.name)}&ll=${place.lat},${place.lng}`)
@@ -175,13 +184,22 @@ export function PlaceDetailScreen() {
         </View>
       </ScrollView>
 
-      <Pressable style={[styles.back, { top: insets.top + 8 }]} onPress={() => router.back()} accessibilityLabel="Back">
+      <Pressable
+        style={[styles.back, { top: insets.top + 8 }]}
+        onPress={() => backToMap(router)}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+      >
         <Ionicons name="chevron-back" size={22} color={colors.ink} />
       </Pressable>
-      <Pressable style={[styles.share, { top: insets.top + 8 }]} onPress={() => void sharePlace()} accessibilityLabel="Share place">
+      <Pressable
+        style={[styles.share, { top: insets.top + 8 }]}
+        onPress={() => void sharePlace()}
+        accessibilityRole="button"
+        accessibilityLabel="Share"
+      >
         <Ionicons name="share-outline" size={18} color={colors.ink} />
       </Pressable>
-      <StackTabs />
     </View>
   );
 }
@@ -270,22 +288,32 @@ const styles = StyleSheet.create({
   back: {
     position: 'absolute',
     left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,253,249,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   share: {
     position: 'absolute',
     right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,253,249,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   link: { color: colors.coral, fontWeight: '800', marginTop: 12 },
 });

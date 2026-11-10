@@ -15,6 +15,8 @@ interface Props {
   onSelect: (placeId: string) => void;
   /** Tap or pan on the map. Used to dismiss the keyboard without taking the gesture. */
   onInteract?: () => void;
+  /** Keeps Apple’s legal line in the bottom-left, above the home indicator. */
+  legalBottomInset?: number;
 }
 
 const initialRegion: Region = {
@@ -29,7 +31,10 @@ const initialRegion: Region = {
  * intentionally omitted — PROVIDER_GOOGLE would require a Maps API key.
  * Android uses the illustrated Tel Aviv map so the diary still opens with no key.
  */
-export const PlaceMap = forwardRef<PlaceMapHandle, Props>(function PlaceMap({ pins, selectedId, onSelect, onInteract }, ref) {
+export const PlaceMap = forwardRef<PlaceMapHandle, Props>(function PlaceMap(
+  { pins, selectedId, onSelect, onInteract, legalBottomInset },
+  ref,
+) {
   const mapRef = useRef<MapView>(null);
 
   useImperativeHandle(ref, () => ({
@@ -57,6 +62,11 @@ export const PlaceMap = forwardRef<PlaceMapHandle, Props>(function PlaceMap({ pi
       initialRegion={initialRegion}
       showsUserLocation
       showsCompass={false}
+      legalLabelInsets={
+        legalBottomInset === undefined
+          ? undefined
+          : { top: 0, left: 12, bottom: legalBottomInset + 2, right: 0 }
+      }
       toolbarEnabled={false}
       rotateEnabled={false}
       pitchEnabled={false}

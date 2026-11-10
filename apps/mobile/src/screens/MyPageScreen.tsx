@@ -13,6 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { backToMap, fabListPadding, MapActions } from '../components/MapActions';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
@@ -22,7 +23,7 @@ import { sharePublicUrl } from '../share';
 import { useAccountGate } from '../auth/useAccountGate';
 import { useAuth } from '../auth/AuthProvider';
 import { useApp } from '../store';
-import { colors } from '../theme';
+import { colors, fonts } from '../theme';
 
 const CHIPS: Array<{ id: ExploreChip; label: string }> = [
   { id: 'all', label: 'All' },
@@ -80,26 +81,28 @@ export function MyPageScreen() {
   }
 
   return (
+    <View style={styles.root}>
     <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
       <View style={styles.top}>
-        <View style={styles.topLead}>
-          <Pressable
-            onPress={() => {
-              if (router.canGoBack()) router.back();
-              else router.replace('/');
-            }}
-            accessibilityLabel="Back"
-            hitSlop={8}
-          >
-            <Ionicons name="chevron-back" size={26} color={colors.ink} />
-          </Pressable>
-          <Text style={styles.handle}>@{pageHandle || '…'}</Text>
-        </View>
+        <Pressable
+          onPress={() => backToMap(router)}
+          accessibilityRole="button"
+          accessibilityLabel="Back to Map"
+          style={styles.back}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.ink} />
+          <Text style={styles.backLabel}>Map</Text>
+        </Pressable>
         <View style={styles.topActions}>
-          <Pressable onPress={() => void sharePage()} accessibilityLabel="Share my page">
-            <Ionicons name="share-outline" size={22} color={colors.ink} />
+          <Pressable
+            onPress={() => void sharePage()}
+            accessibilityRole="button"
+            accessibilityLabel="Share"
+            style={styles.iconHit}
+          >
+            <Ionicons name="share-outline" size={20} color={colors.ink} />
           </Pressable>
-          <Pressable onPress={() => setMenu(true)} accessibilityLabel="More">
+          <Pressable onPress={() => setMenu(true)} accessibilityLabel="More" style={styles.iconHit}>
             <Ionicons name="ellipsis-horizontal" size={22} color={colors.ink} />
           </Pressable>
         </View>
@@ -114,8 +117,13 @@ export function MyPageScreen() {
         </View>
       </View>
 
-      <Pressable style={styles.find} onPress={() => router.push('/find-friends')}>
-        <Ionicons name="search" size={14} color={colors.coral} />
+      <Text style={styles.handle}>@{pageHandle || '…'}</Text>
+      <Pressable
+        style={styles.find}
+        accessibilityRole="button"
+        accessibilityLabel="Find friends"
+        onPress={() => router.push('/find-friends')}
+      >
         <Text style={styles.findText}>Find friends</Text>
       </Pressable>
       {!session ? (
@@ -164,7 +172,7 @@ export function MyPageScreen() {
           <FlatList
             data={entries}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: fabListPadding(insets.bottom) }}
             renderItem={({ item }) => {
               const place = placeById(data, item.placeId);
               if (!place) return null;
@@ -249,6 +257,8 @@ export function MyPageScreen() {
         </Pressable>
       </Modal>
     </View>
+    <MapActions bottomInset={insets.bottom} onAdd={() => router.push('/add')} />
+    </View>
   );
 }
 
@@ -262,29 +272,30 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.cream },
   screen: { flex: 1, backgroundColor: colors.cream, paddingHorizontal: 16 },
-  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  topLead: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 },
+  back: { minHeight: 44, paddingRight: 8, flexDirection: 'row', alignItems: 'center' },
+  backLabel: { fontFamily: fonts.sansSemibold, fontSize: 17, lineHeight: 22, color: colors.ink },
+  iconHit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   handle: { fontSize: 20, fontWeight: '800', color: colors.ink },
-  topActions: { flexDirection: 'row', gap: 16 },
+  topActions: { flexDirection: 'row', alignItems: 'center' },
   identity: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   stats: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
   statValue: { fontSize: 20, fontWeight: '800', color: colors.ink },
   statLabel: { color: colors.muted, fontSize: 13 },
   find: {
-    alignSelf: 'center',
-    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: colors.ink,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: colors.coral,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginTop: 8,
+    justifyContent: 'center',
+    marginTop: 12,
   },
-  findText: { color: colors.coral, fontWeight: '800' },
+  findText: { color: colors.paper, fontFamily: fonts.sansSemibold, fontSize: 15 },
   signIn: {
     alignSelf: 'center',
     marginTop: 10,

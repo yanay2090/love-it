@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
   buildPlaceView,
+  categoryLabel,
   explorePins,
   filterExplorePlaces,
   firstName,
@@ -14,11 +15,12 @@ import {
 } from '@love-it/shared';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Alert, FlatList, Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { tabBarOffset } from '../components/AppTabBar';
+import { fabListPadding, MapActions } from '../components/MapActions';
 import { MapListToggle } from '../components/MapListToggle';
 import { PlaceMap, type PlaceMapHandle } from '../components/PlaceMap';
 import { PlaceRow } from '../components/PlaceRow';
@@ -52,12 +54,15 @@ export function ExploreScreen() {
   const [chip, setChip] = useState<ExploreChip>('friends');
   const [more, setMore] = useState(false);
   const [mode, setMode] = useState<'map' | 'list'>('map');
-  const [selectedId, setSelectedId] = useState('place_lev_florentin');
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [cardHeight, setCardHeight] = useState(0);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<PlaceMapHandle>(null);
   const searchRef = useRef<ComponentRef<typeof TextInput>>(null);
   const openedAt = useRef(Date.now());
+  const pinTapAt = useRef(0);
   const dismissSearch = useCallback(() => {
     searchRef.current?.blur();
     Keyboard.dismiss();
@@ -92,7 +97,7 @@ export function ExploreScreen() {
     [data, me.id, chip, query, origin],
   );
   const pins = useMemo(() => explorePins(data, me.id, places), [data, me.id, places]);
-  const selected = places.find((place) => place.id === selectedId) ?? places[0];
+  const selected = places.find((place) => place.id === selectedId);
 
   function openPlace(placeId: string, source: 'explore' | 'list') {
     track('place_viewed', { place_id: placeId, source });
@@ -144,9 +149,15 @@ export function ExploreScreen() {
         <PlaceMap
           ref={mapRef}
           pins={pins}
+          legalBottomInset={insets.bottom}
           selectedId={selected?.id}
-          onInteract={dismissSearch}
+          onInteract={() => {
+            dismissSearch();
+            if (Date.now() - pinTapAt.current < 350) return;
+            setSelectedId(undefined);
+          }}
           onSelect={(placeId) => {
+            pinTapAt.current = Date.now();
             dismissSearch();
             brandHaptic('pinSelect');
             setSelectedId(placeId);
@@ -163,7 +174,7 @@ export function ExploreScreen() {
           contentContainerStyle={{
             paddingTop: headerHeight + 12,
             paddingHorizontal: 16,
-            paddingBottom: tabBarOffset(insets.bottom) + 16,
+            paddingBottom: fabListPadding(insets.bottom),
           }}
           ListEmptyComponent={<Text style={styles.empty}>No places match that.</Text>}
           renderItem={({ item }) => {
@@ -189,18 +200,41 @@ export function ExploreScreen() {
         />
       )}
 
+      <LinearGradient
+        colors={['rgba(247,243,236,0.50)', 'rgba(247,243,236,0)']}
+        style={styles.scrim}
+        pointerEvents="none"
+      />
       <View
-        style={[styles.header, { paddingTop: insets.top + 6 }]}
+        style={[styles.header, { paddingTop: insets.top + 8 }]}
         pointerEvents="box-none"
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
       >
         <View style={styles.titleRow}>
-          <Wordmark />
-          <Pressable onPress={() => router.push('/me')} accessibilityLabel="My page">
-            <Avatar initials={me.initials} color={me.avatarColor} size={40} imageUri={me.avatarUrl} />
+          <Text style={styles.wordmark} accessibilityElementsHidden>
+            <Wordmark size={24} markScale={0.56} />
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open My page, ${me.displayName}`}
+            onPress={() => router.push('/me')}
+            style={styles.avatarHit}
+          >
+            <View style={styles.avatarRing}>
+              <Avatar initials={me.initials} color={me.avatarColor} size={36} imageUri={me.avatarUrl} />
+            </View>
           </Pressable>
         </View>
-        <SearchField ref={searchRef} value={query} onChangeText={setQuery} placeholder="Search places" />
+        <SearchField
+          ref={searchRef}
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search places"
+          accessibilityLabel="Search places"
+          appearance="field"
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+        />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {MAIN_CHIPS.map((item) => (
             <Chip
@@ -241,28 +275,32 @@ export function ExploreScreen() {
         ) : null}
         <View style={styles.toggleRow}>
           <MapListToggle mode={mode} onChange={setMode} />
-          {mode === 'map' ? (
-            <Pressable style={styles.locate} onPress={() => void recenter()} accessibilityLabel="Recenter map">
-              <Ionicons name="locate" size={18} color={colors.ink} />
-            </Pressable>
-          ) : null}
         </View>
       </View>
 
-      {mode === 'map' && headerHeight > 0 ? (
+      {mode === 'map' && selected ? (
         <View
-          style={[styles.mapChrome, { top: headerHeight, bottom: tabBarOffset(insets.bottom) }]}
-          pointerEvents="box-none"
+          style={[styles.cardSlot, { bottom: insets.bottom + 8 }]}
+          onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}
         >
-          {selected ? (
-            <PreviewCard
-              placeId={selected.id}
-              onOpen={() => openPlace(selected.id, 'explore')}
-              onHeart={() => onQuick(selected.id, selected.category)}
-            />
-          ) : null}
+          <PreviewCard
+            placeId={selected.id}
+            onOpen={() => openPlace(selected.id, 'explore')}
+            onHeart={() => onQuick(selected.id, selected.category)}
+            onDismiss={() => setSelectedId(undefined)}
+          />
         </View>
       ) : null}
+
+      <MapActions
+        bottomInset={insets.bottom}
+        cardHeight={cardHeight}
+        cardVisible={mode === 'map' && Boolean(selected)}
+        showRecenter={mode === 'map'}
+        hidden={searchFocused}
+        onAdd={() => router.push('/add')}
+        onRecenter={() => void recenter()}
+      />
     </View>
   );
 }
@@ -271,10 +309,12 @@ function PreviewCard({
   placeId,
   onOpen,
   onHeart,
+  onDismiss,
 }: {
   placeId: string;
   onOpen: () => void;
   onHeart: () => void;
+  onDismiss: () => void;
 }) {
   const { data, me } = useApp();
   const view = buildPlaceView(data, placeId, me.id);
@@ -296,6 +336,10 @@ function PreviewCard({
       drag.value = event.translationY < 0 ? event.translationY : event.translationY * 0.35;
     })
     .onEnd((event) => {
+      if (event.translationY > 72 || event.velocityY > 700) {
+        runOnJS(onDismiss)();
+        return;
+      }
       const commit =
         event.translationY < -height * motionTokens.thresholds.cardCommitRatio ||
         event.velocityY < motionTokens.thresholds.cardCommitVelocity;
@@ -309,7 +353,12 @@ function PreviewCard({
   return (
     <GestureDetector gesture={pan}>
     <Animated.View style={rise}>
-    <Pressable style={styles.card} onPress={onOpen}>
+    <Pressable
+      style={styles.card}
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`${view.place.name}, ${categoryLabel(view.place.category)}, ${view.place.neighborhood}`}
+    >
       <Thumb uri={view.heroPhotos[0]} size={96} sharedTag={`place-${placeId}-photo`} />
       <View style={{ flex: 1 }}>
         <Text style={styles.overline} numberOfLines={1}>
@@ -342,8 +391,21 @@ function PreviewCard({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
-  header: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: 10, gap: 10 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0, height: 100, zIndex: 1 },
+  header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
+  titleRow: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  wordmark: {
+    textShadowColor: 'rgba(247,243,236,0.95)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+  avatarHit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  avatarRing: {
+    borderWidth: 1.5,
+    borderColor: colors.linen,
+    borderRadius: 18,
+    ...shadow.soft,
+  },
   chips: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingRight: 4 },
   toggleRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8 },
   filter: {
@@ -355,16 +417,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadow.soft,
   },
-  mapChrome: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, justifyContent: 'flex-end' },
-  locate: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadow.soft,
-  },
+  cardSlot: { position: 'absolute', left: 12, right: 12, zIndex: 3 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -372,7 +425,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.linen,
     borderRadius: 20,
     padding: 12,
-    marginBottom: 8,
     ...shadow.card,
   },
   overline: { fontFamily: fonts.sansSemibold, fontSize: 11, letterSpacing: 1.1, color: colors.stone },
